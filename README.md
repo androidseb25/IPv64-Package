@@ -17,21 +17,52 @@ Das SDK enthält zwei Clients mit gemeinsamem Kern:
 
 ## Einbinden
 
-Als Modul:
+[![JitPack](https://jitpack.io/v/androidseb25/IPv64-Package.svg)](https://jitpack.io/#androidseb25/IPv64-Package)
+
+Das Package wird über [JitPack](https://jitpack.io/#androidseb25/IPv64-Package) verteilt.
+
+**1. JitPack als Repository eintragen** (`settings.gradle.kts`):
 
 ```kotlin
-// settings.gradle.kts
-include(":ipv64")
-
-// app/build.gradle.kts
-dependencies {
-    implementation(project(":ipv64"))
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven("https://jitpack.io")
+    }
 }
 ```
 
-Oder lokal veröffentlichen (`./gradlew :ipv64:publishToMavenLocal`) und dann
-`implementation("de.sr:ipv64:1.0.0")` mit `mavenLocal()` verwenden. Für JitPack liegt eine
-`jitpack.yml` bei.
+**2. Abhängigkeit hinzufügen** – mit Version Catalog (`gradle/libs.versions.toml`):
+
+```toml
+[versions]
+ipv64 = "1.0.0"
+
+[libraries]
+ipv64 = { module = "com.github.androidseb25:IPv64-Package", version.ref = "ipv64" }
+```
+
+```kotlin
+// app/build.gradle.kts
+dependencies {
+    implementation(libs.ipv64)
+}
+```
+
+oder direkt:
+
+```kotlin
+implementation("com.github.androidseb25:IPv64-Package:1.0.0")
+```
+
+**3. Voraussetzungen der App:** `compileSdk = 37` (verlangt von OkHttp 5.5), `minSdk` ≥ 26,
+Java 17. Die `INTERNET`-Berechtigung bringt das Package selbst mit. OkHttp, Coroutines und
+kotlinx.serialization kommen transitiv mit.
+
+Alternativ als lokales Modul (`include(":ipv64")` + `implementation(project(":ipv64"))`) oder per
+`./gradlew :ipv64:publishToMavenLocal` als `de.sr:ipv64:1.0.0` aus `mavenLocal()`.
 
 ## Schnellstart
 
@@ -57,6 +88,194 @@ lifecycleScope.launch {
 
 Erzeuge **eine** Instanz pro API-Key und verwende sie wieder (z. B. per DI als Singleton).
 Instanzen sind thread-safe und teilen sich den Connection-Pool.
+
+## Beispiel: Implementierung in einer App (MVVM + Compose)
+
+Ein vollständiges Beispiel mit Repository, ViewModel und Compose-Screen. Den API-Key nicht im
+Code hinterlegen, sondern z. B. vom Nutzer eingeben lassen und verschlüsselt speichern.
+
+**Client bereitstellen** – eine Instanz für die ganze App (hier ohne DI-Framework):
+
+```kotlin
+import de.sr.ipv64.IPv64
+import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
+
+object Ipv64Provider {
+    @Volatile private var client: IPv64? = null
+
+    /** Liefert den Client für [apiKey]; bei neuem Key wird er neu erstellt. */
+    fun get(apiKey: String): IPv64 =
+        client?.takeIf { it.apiKey == apiKey } ?: synchronized(this) {
+            client?.takeIf { it.apiKey == apiKey } ?: IPv64(
+                apiKey = apiKey,
+                okHttpClient = OkHttpClient.Builder()
+                    .callTimeout(30, TimeUnit.SECONDS)
+                    .build(),
+            ).also { client = it }
+        }
+}
+```
+
+Mit Hilt/Koin entsprechend als `@Singleton` bzw. `single { IPv64(apiKey = get()) }`.
+
+**Repository** – kapselt das SDK und übersetzt Fehler in ein eigenes Ergebnis:
+
+```kotlin
+import de.sr.ipv64.IPv64
+import de.sr.ipv64.IPv64ApiException
+import de.sr.ipv64.IPv64Exception
+import de.sr.ipv64.IPv64NetworkException
+import de.sr.ipv64.model.Domain
+import de.sr.ipv64.model.DynDnsResult
+
+class DomainRepository(private val ipv64: IPv64) {
+
+    suspend fun domains(): Result<List<Domain>> = call { ipv64.domains.list() }
+
+    /** Aktualisiert die Domain mit der aktuellen öffentlichen IP (vom Server erkannt). */
+    suspend fun updateDynDns(domain: String): Result<DynDnsResult> =
+        call { ipv64.dynDns.update(domain) }
+
+    private suspend fun <T> call(block: suspend () -> T): Result<T> = try {
+        Result.success(block())
+    } catch (e: IPv64Exception) {
+        Result.failure(e)
+    }
+}
+
+/** Nutzerfreundliche Fehlermeldung für die UI. */
+fun Throwable.userMessage(): String = when (this) {
+    is IPv64ApiException -> when {
+        isUnauthorized -> "API-Key ungültig – bitte neu anmelden."
+        isRateLimited -> "Zu viele Anfragen, bitte in ${retryAfterSeconds ?: 10} s erneut versuchen."
+        else -> detail ?: "Fehler $status"
+    }
+    is IPv64NetworkException -> "Keine Verbindung zu ipv64.net."
+    else -> message ?: "Unbekannter Fehler"
+}
+```
+
+**ViewModel** – hält den UI-Zustand als `StateFlow`:
+
+```kotlin
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import de.sr.ipv64.model.Domain
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+data class DomainsUiState(
+    val loading: Boolean = false,
+    val domains: List<Domain> = emptyList(),
+    val message: String? = null,
+)
+
+class DomainsViewModel(private val repository: DomainRepository) : ViewModel() {
+
+    private val _state = MutableStateFlow(DomainsUiState())
+    val state: StateFlow<DomainsUiState> = _state.asStateFlow()
+
+    init { refresh() }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _state.update { it.copy(loading = true, message = null) }
+            repository.domains()
+                .onSuccess { list -> _state.update { it.copy(loading = false, domains = list) } }
+                .onFailure { e -> _state.update { it.copy(loading = false, message = e.userMessage()) } }
+        }
+    }
+
+    fun updateDynDns(domain: String) {
+        viewModelScope.launch {
+            repository.updateDynDns(domain)
+                .onSuccess { result ->
+                    val text = if (result.changed == true) "IP von $domain aktualisiert" else "$domain ist aktuell"
+                    _state.update { it.copy(message = text) }
+                }
+                .onFailure { e -> _state.update { it.copy(message = e.userMessage()) } }
+        }
+    }
+}
+```
+
+Ohne DI das ViewModel über eine Factory erzeugen:
+
+```kotlin
+val viewModel: DomainsViewModel = viewModel {
+    DomainsViewModel(DomainRepository(Ipv64Provider.get(apiKey)))
+}
+```
+
+**Compose-Screen**:
+
+```kotlin
+@Composable
+fun DomainsScreen(viewModel: DomainsViewModel) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
+        if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+        state.message?.let { Text(it, color = MaterialTheme.colorScheme.secondary) }
+
+        LazyColumn {
+            items(state.domains, key = { it.id ?: it.name.orEmpty().hashCode().toLong() }) { domain ->
+                ListItem(
+                    headlineContent = { Text(domain.name.orEmpty()) },
+                    supportingContent = { Text("${domain.kind?.value ?: "?"} · Updates: ${domain.updateCount ?: 0}") },
+                    trailingContent = {
+                        TextButton(onClick = { viewModel.updateDynDns(domain.name.orEmpty()) }) {
+                            Text("Update")
+                        }
+                    },
+                )
+            }
+        }
+    }
+}
+```
+
+**Node64 im selben Projekt** – z. B. alle Checks einer Node, die gerade down sind:
+
+```kotlin
+import de.sr.ipv64.Node64ApiException
+import de.sr.ipv64.node64.Node64
+import de.sr.ipv64.node64.model.CheckStateValue
+
+val node = Node64(
+    baseUrl = "https://node.example.home64.de/api",
+    apiKey = nodeApiKey,
+    actor = "Android-App",
+)
+
+viewModelScope.launch {
+    try {
+        val down = node.checks.list(state = CheckStateValue.DOWN)
+        down.forEach { check -> println("${check.name}: down seit ${check.state?.since}") }
+    } catch (e: Node64ApiException) {
+        if (e.isNotFound) println("Healthchecks-Modul ist auf der Node ausgeschaltet")
+        else println(e.error)
+    }
+}
+```
+
+Für `http://`-Adressen im LAN zusätzlich Klartext für den Host der Node erlauben
+(`res/xml/network_security_config.xml`):
+
+```xml
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.1.10</domain>
+    </domain-config>
+</network-security-config>
+```
+
+und im Manifest `android:networkSecurityConfig="@xml/network_security_config"` am
+`<application>`-Element setzen.
 
 ## Konfiguration
 
