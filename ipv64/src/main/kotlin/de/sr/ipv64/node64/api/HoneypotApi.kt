@@ -15,6 +15,12 @@ import de.sr.ipv64.node64.model.Honeypot64Stats
 import de.sr.ipv64.node64.model.Honeypot64Status
 import de.sr.ipv64.node64.model.HoneypotEventSource
 import de.sr.ipv64.node64.model.HoneypotEventsDeleted
+import de.sr.ipv64.node64.model.HoneypotCert
+import de.sr.ipv64.node64.model.HoneypotCertRequest
+import de.sr.ipv64.node64.model.HoneypotWatch
+import de.sr.ipv64.node64.model.HoneypotWatchCheck
+import de.sr.ipv64.node64.model.HoneypotWatchNetwork
+import de.sr.ipv64.node64.model.HoneypotWatchRequest
 
 /** Tag *Honeypot64*: honeypot sensor of the node. */
 public class HoneypotApi internal constructor(private val transport: HttpTransport) {
@@ -78,4 +84,25 @@ public class HoneypotApi internal constructor(private val transport: HttpTranspo
     /** Live map: attacks of the last minutes with country and map point. `GET /honeypot/live` */
     public suspend fun live(minutes: Int? = null): Honeypot64Live =
         transport.json(Method.GET, ApiPath("honeypot", "live"), query("minutes" to minutes))
+
+    /** Creates a certificate for decoy names. `POST /honeypot/cert` */
+    public suspend fun createCert(request: HoneypotCertRequest): HoneypotCert =
+        transport.json(Method.POST, ApiPath("honeypot", "cert"), body = transport.body(request))
+
+    /** Early warning: own networks, DynDNS IPs, limits and hits. `GET /honeypot/watch` */
+    public suspend fun watch(): HoneypotWatch =
+        transport.json(Method.GET, ApiPath("honeypot", "watch"))
+
+    /** Registers a network (or single IP) with ipv64. `POST /honeypot/watch` */
+    public suspend fun addWatch(request: HoneypotWatchRequest): HoneypotWatchNetwork =
+        transport.json(Method.POST, ApiPath("honeypot", "watch"), body = transport.body(request))
+
+    /** Fetches the hits of the early warning now. `POST /honeypot/watch/check` */
+    public suspend fun checkWatch(): HoneypotWatchCheck =
+        transport.json(Method.POST, ApiPath("honeypot", "watch", "check"))
+
+    /** Removes a network from ipv64. `DELETE /honeypot/watch/{id}` */
+    public suspend fun deleteWatch(id: Long) {
+        transport.unit(Method.DELETE, ApiPath("honeypot", "watch", id.toString()))
+    }
 }

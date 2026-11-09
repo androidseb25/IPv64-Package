@@ -142,3 +142,59 @@ public data class ClusterSyncModules(
     /** Sync switches per module. */
     @SerialName("sync_modules") val syncModules: List<ClusterSyncModule> = emptyList(),
 )
+
+/** Body of `POST /group/acme`. */
+@Serializable
+public data class ChooseAcmeAccountRequest(
+    /** Thumbprint of the ACME account to use cluster-wide. */
+    val thumbprint: String,
+)
+
+/** ACME account that was dropped. */
+@Serializable
+public data class DroppedAcmeAccount(
+    /** Thumbprint. */
+    val thumbprint: String? = null,
+    /** Node. */
+    @SerialName("node_id") val nodeId: String? = null,
+    /** E-mail. */
+    val email: String? = null,
+)
+
+/** Response of `POST /group/acme`. */
+@Serializable
+public data class ChooseAcmeAccountResult(
+    /** Chosen thumbprint. */
+    val chosen: String? = null,
+    /** Dropped accounts. */
+    val dropped: List<DroppedAcmeAccount> = emptyList(),
+)
+
+/** Body of `POST /group/users`. */
+@Serializable
+public data class ChooseUserRequest(
+    /** UID of the user to use cluster-wide. */
+    val uid: String,
+)
+
+/** User that was dropped. */
+@Serializable
+public data class DroppedUser(
+    /** UID. */
+    val uid: String? = null,
+    /** Node. */
+    @SerialName("node_id") val nodeId: String? = null,
+    /** Belongs to this node. */
+    val own: Boolean? = null,
+)
+
+/** Response of `POST /group/users`. */
+@Serializable
+public data class ChooseUserResult(
+    /** User name. */
+    val username: String? = null,
+    /** Chosen UID. */
+    val chosen: String? = null,
+    /** Dropped users. */
+    val dropped: List<DroppedUser> = emptyList(),
+)

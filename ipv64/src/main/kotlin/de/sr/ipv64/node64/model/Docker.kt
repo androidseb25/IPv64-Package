@@ -119,7 +119,7 @@ public data class DockerContainerCheck(
     val message: String? = null,
 )
 
-/** Body of `POST /healthchecks/docker/systems`. Without [addresses] the local socket is used. */
+/** Body of `POST /healthchecks/docker/systems`. Secrets are redacted in [toString]. Without [addresses] the local socket is used. */
 @Serializable
 public data class DockerSystemRequest(
     /** Name. */
@@ -130,4 +130,66 @@ public data class DockerSystemRequest(
     val interval: Int? = null,
     /** Monitoring enabled. */
     val enabled: Boolean? = null,
+    /** API token ID. */
+    @SerialName("token_id") val tokenId: String? = null,
+    /** Secret: JSON `{key, cert, ca}` or a private SSH key (PEM). Redacted in [toString]. */
+    val secret: String? = null,
+    /** Pinned fingerprint (64 hex), https/ssh only. */
+    @SerialName("pin_sha256") val pinSha256: String? = null,
+    /** Private SSH or TLS client key (PEM); empty = unchanged. Redacted in [toString]. */
+    @SerialName("private_key") val privateKey: String? = null,
+    /** TLS client certificate (PEM); `""` removes certificate and key. */
+    val cert: String? = null,
+    /** CA of the Docker daemon (PEM); `""` removes it. */
+    val ca: String? = null,
+    /** SSH: generate and store a new ed25519 key (public part in `credentials.public_key`). */
+    @SerialName("generate_key") val generateKey: Boolean? = null,
+) {
+    override fun toString(): String =
+        "DockerSystemRequest(name=$name, addresses=$addresses, interval=$interval, enabled=$enabled, tokenId=$tokenId, " +
+            "secret=<redacted>, pinSha256=$pinSha256, privateKey=<redacted>, cert=$cert, ca=$ca, generateKey=$generateKey)"
+}
+
+/** Host info of a [DockerProbe]. */
+@Serializable
+public data class DockerProbeInfo(
+    /** Name. */
+    val name: String? = null,
+    /** Operating system. */
+    val os: String? = null,
+    /** Version. */
+    val version: String? = null,
+    /** CPU count. */
+    val ncpu: Int? = null,
+    /** Memory in bytes. */
+    @SerialName("mem_total") val memTotal: Long? = null,
+)
+
+/** Response of `POST /healthchecks/docker/probe`. */
+@Serializable
+public data class DockerProbe(
+    /** Connection succeeded. */
+    val ok: Boolean? = null,
+    /** Error message. */
+    val error: String? = null,
+    /** Seen host key (SSH) or certificate (TLS), 64 hex; usable as `pin_sha256`. */
+    val fingerprint: String? = null,
+    /** Fingerprint for comparing. */
+    @SerialName("fingerprint_display") val fingerprintDisplay: String? = null,
+    /** TLS: certificate confirmed by the CA. */
+    val trusted: Boolean? = null,
+    /** Only the fingerprint was read; test again with it as `pin_sha256`. */
+    @SerialName("need_confirm") val needConfirm: Boolean? = null,
+    /** Seen fingerprint does not match the given pin. */
+    @SerialName("pin_differs") val pinDiffers: Boolean? = null,
+    /** Host info. */
+    val info: DockerProbeInfo? = null,
+    /** Number of containers. */
+    val containers: Int? = null,
+    /** Number of running containers. */
+    val running: Int? = null,
+    /** Warning. */
+    val warning: String? = null,
+    /** SSH: public part of the used key. */
+    @SerialName("public_key") val publicKey: String? = null,
 )

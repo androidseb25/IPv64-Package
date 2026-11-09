@@ -327,4 +327,99 @@ class Proxy64ApiTest : Node64ApiTestBaseB() {
         assertOnline(proxy.registerOnlineTunnel())
         expectRequest("POST", "/api/cdn64/online/tunnel")
     }
+
+    @Test
+    fun `blocklists deny and honeypot route`() = test<Unit> {
+        enqueueJson("""{"deny":["1.2.3.0/24"],"denied":7}""")
+        val b = proxy.updateBlocklists(UpdateBlocklistsRequest(deny = listOf("1.2.3.0/24")))
+        assertEquals(listOf("1.2.3.0/24"), b.deny)
+        assertEquals(7L, b.denied)
+        assertEquals(js("""{"deny":["1.2.3.0/24"]}"""), expectRequest("PUT", "/api/cdn64/blocklists").jsonBody())
+        enqueueJson("""{"settings":{"route":{"geo":true,"ai_bot":false}}}""")
+        val h = proxy.updateHoneypot(CDNHoneypotSettingsRequest(route = CDNHoneypotRoute(geo = true, aiBot = false)))
+        assertEquals(true, h.settings!!.route!!.geo)
+        assertEquals(
+            js("""{"route":{"ai_bot":false,"geo":true}}"""),
+            expectRequest("PUT", "/api/cdn64/honeypot").jsonBody(),
+        )
+    }
+
+    @Test
+    fun `online edge decodes rtt and loss`() {
+        val e = kotlinx.serialization.json.Json.decodeFromString<CDNOnlineEdge>("""{"name":"srv07","rtt_ms":12.5,"loss_pct":-1}""")
+        assertEquals(12.5, e.rttMs!!, 0.0)
+        assertEquals(-1.0, e.lossPct!!, 0.0)
+    }
+
+    @Test
+    fun `onlineServers decodes`() = test<Unit> {
+        enqueueJson("""{"count":2,"choice":0,"max":4,"all":true,"selectable":true,"assigned":["srv07"],"active":["srv07"],"sessions":3,"sessions_max":8,"replaced":{"srv08":"srv09"},"options":[0,1],"session_options":[1,2]}""")
+        val s = proxy.onlineServers()
+        expectRequest("GET", "/api/cdn64/online/servers")
+        assertEquals(2, s.count)
+        assertEquals(listOf("srv07"), s.assigned)
+        assertEquals("srv09", s.replaced["srv08"])
+        assertEquals(8, s.sessionsMax)
+        assertEquals(listOf(1, 2), s.sessionOptions)
+    }
+
+    @Test
+    fun `setOnlineServers puts body`() = test<Unit> {
+        enqueueJson("""{"count":0}""")
+        proxy.setOnlineServers(SetCDNServersRequest(count = 0, sessions = 2))
+        assertEquals(js("""{"count":0,"sessions":2}"""), expectRequest("PUT", "/api/cdn64/online/servers").jsonBody())
+    }
+
+    @Test
+    fun `pauseOnlineName posts paused`() = test<Unit> {
+        enqueueNoContent()
+        proxy.pauseOnlineName(12, PauseOnlineRequest(paused = true))
+        assertEquals(js("""{"paused":true}"""), expectRequest("POST", "/api/cdn64/online/names/12/pause").jsonBody())
+    }
+
+    @Test
+    fun `protection sends days and decodes`() = test<Unit> {
+        enqueueJson(
+            """{"days":7,"ja4_global":"count","totals":{"blocked_waf":3},"daily":[{"day":"2026-10-01"}],"ja4_top":[{"ja4":"t13d","hits":5}],
+            "hosts":[{"id":1,"fqdn":"a.example.com","mode":2,"host_id":3,"blocked":4,"overload":1,"waf":true,"ja4":"block"}]}""",
+        )
+        val p = proxy.protection(days = 7)
+        expectRequest("GET", "/api/cdn64/protection?days=7")
+        assertEquals("count", p.ja4Global)
+        assertEquals("3", p.totals!!["blocked_waf"]!!.jsonPrimitive.content)
+        assertEquals(1, p.daily.size)
+        assertEquals(5L, p.ja4Top.single().hits)
+        val h = p.hosts.single()
+        assertEquals(3L, h.hostId)
+        assertEquals(true, h.waf)
+        assertEquals("block", h.ja4)
+    }
+
+    @Test
+    fun `release posts ip and source`() = test<Unit> {
+        enqueueJson("""{}""")
+        proxy.release(ReleaseBlockRequest("1.2.3.4", ReleaseSource.HONEYPOT))
+        assertEquals(js("""{"ip":"1.2.3.4","from":"honeypot"}"""), expectRequest("POST", "/api/cdn64/release").jsonBody())
+    }
+
+    @Test
+    fun `docker decodes and updateDocker puts`() = test<Unit> {
+        enqueueJson(
+            """{"enabled":true,"connected":false,"host":"unix:///var/run/docker.sock","error":"e","synced":"2026-10-28T10:00:00Z",
+            "containers":[{"name":"web"}],"settings":{"enabled":true,"traefik":true,"docker_host":"","certificate":"auto"}}""",
+        )
+        val d = proxy.docker()
+        expectRequest("GET", "/api/cdn64/docker")
+        assertEquals(false, d.connected)
+        assertEquals(Instant.parse("2026-10-28T10:00:00Z"), d.synced)
+        assertEquals("web", d.containers.single()["name"]!!.jsonPrimitive.content)
+        assertEquals("auto", d.settings!!.certificate)
+
+        enqueueJson("""{"enabled":true}""")
+        proxy.updateDocker(UpdateProxyDockerRequest(enabled = true, dockerHost = "tcp://x:2375", certificate = "auto", acceptTos = true))
+        assertEquals(
+            js("""{"enabled":true,"docker_host":"tcp://x:2375","certificate":"auto","accept_tos":true}"""),
+            expectRequest("PUT", "/api/cdn64/docker").jsonBody(),
+        )
+    }
 }

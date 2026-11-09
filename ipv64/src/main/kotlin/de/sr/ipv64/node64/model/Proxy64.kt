@@ -16,6 +16,7 @@ public enum class ProxyHostKind(override val value: String) : ApiValue {
     @SerialName("dead") DEAD("dead"),
     @SerialName("passthrough") PASSTHROUGH("passthrough"),
     @SerialName("status") STATUS("status"),
+    @SerialName("stream") STREAM("stream"),
 }
 
 /** Scheme of a target. */
@@ -46,6 +47,40 @@ public enum class ProxyGeoMode(override val value: String) : ApiValue {
     @SerialName("") OFF(""),
     @SerialName("block") BLOCK("block"),
     @SerialName("allow") ALLOW("allow"),
+}
+
+/** Action of a location: forward to the target, block, or answer with a fixed response. */
+@Serializable
+public enum class LocationAction(override val value: String) : ApiValue {
+    @SerialName("") FORWARD(""),
+    @SerialName("block") BLOCK("block"),
+    @SerialName("respond") RESPOND("respond"),
+}
+
+/** Buffering of a location: as the host, on, or off. */
+@Serializable
+public enum class LocationBuffering(override val value: String) : ApiValue {
+    @SerialName("") INHERIT(""),
+    @SerialName("on") ON("on"),
+    @SerialName("off") OFF("off"),
+}
+
+/** Style of the maintenance page. */
+@Serializable
+public enum class MaintenanceStyle(override val value: String) : ApiValue {
+    @SerialName("matrix") MATRIX("matrix"),
+    @SerialName("gear") GEAR("gear"),
+    @SerialName("custom") CUSTOM("custom"),
+}
+
+/** Login service (forward auth) of an access list. */
+@Serializable
+public enum class AccessListAuth(override val value: String) : ApiValue {
+    @SerialName("") USERS(""),
+    @SerialName("authentik") AUTHENTIK("authentik"),
+    @SerialName("authelia") AUTHELIA("authelia"),
+    @SerialName("oauth2-proxy") OAUTH2_PROXY("oauth2-proxy"),
+    @SerialName("custom") CUSTOM("custom"),
 }
 
 /** Action of an access rule. */
@@ -92,6 +127,8 @@ public enum class RequestCertificateSource(override val value: String) : ApiValu
     @SerialName("alias") ALIAS("alias"),
     @SerialName("http") HTTP("http"),
     @SerialName("dns") DNS("dns"),
+    @SerialName("ca") CA("ca"),
+    @SerialName("self") SELF("self"),
 }
 
 /** DNS record type to create. */
@@ -143,6 +180,35 @@ public data class CDNLocation(
     val websockets: Boolean? = null,
     /** Access list, 0 = as the host. */
     @SerialName("access_list_id") val accessListId: Long? = null,
+    /** Action: `""` = to the target (default), `block`, `respond`; block and respond need no target. */
+    val action: LocationAction? = null,
+    /** block: 400-499 (default 403), respond: 200-599 (default 200). */
+    val status: Int? = null,
+    /** respond: content, at most 64 KB. */
+    val body: String? = null,
+    /** respond: default `text/plain; charset=utf-8`. */
+    @SerialName("content_type") val contentType: String? = null,
+    /** Own values of the location (action `""` only); unset ones come from the host. */
+    val advanced: CDNLocationAdvanced? = null,
+)
+
+/** Own advanced values of a location. */
+@Serializable
+public data class CDNLocationAdvanced(
+    /** Timeout in seconds until the target answers, 0 = as the host. */
+    @SerialName("timeout_seconds") val timeoutSeconds: Int? = null,
+    /** Maximum body size in MB, 0 = as the host, -1 = unlimited. */
+    @SerialName("max_body_mb") val maxBodyMb: Int? = null,
+    /** Buffering: `""` = as the host, `off` = pass on immediately (streaming). */
+    val buffering: LocationBuffering? = null,
+    /** Headers added to requests. */
+    @SerialName("request_headers") val requestHeaders: List<CDNHeader> = emptyList(),
+    /** Request headers to remove. */
+    @SerialName("request_remove") val requestRemove: List<String> = emptyList(),
+    /** Headers added to responses. */
+    @SerialName("response_headers") val responseHeaders: List<CDNHeader> = emptyList(),
+    /** Response headers to remove. */
+    @SerialName("response_remove") val responseRemove: List<String> = emptyList(),
 )
 
 /** Advanced settings of a host. */
@@ -182,6 +248,24 @@ public data class CDNAdvanced(
     @SerialName("ai_bots_allow_user") val aiBotsAllowUser: Boolean? = null,
     /** Serve a `/robots.txt` disallowing all AI bots if the target has none. */
     @SerialName("ai_robots") val aiRobots: Boolean? = null,
+    /** Maintenance mode (proxy hosts only): maintenance page (503) instead of the target. */
+    val maintenance: Boolean? = null,
+    /** Maintenance page style, default `matrix`. */
+    @SerialName("maintenance_style") val maintenanceStyle: MaintenanceStyle? = null,
+    /** Own HTML (`custom`), at most 64 KB. */
+    @SerialName("maintenance_html") val maintenanceHtml: String? = null,
+    /** Own error page (proxy hosts only) for 502/503/504; `{{STATUS}}` and `{{HOST}}` are replaced, empty = neutral page. */
+    @SerialName("error_html") val errorHtml: String? = null,
+    /** Also replace 5xx answers of the target by `error_html` (status code stays). */
+    @SerialName("error_override") val errorOverride: Boolean? = null,
+    /** Proxy hosts only: path put before every request, empty = unchanged. */
+    @SerialName("target_path") val targetPath: String? = null,
+    /** Proxy hosts only: answer only the locations, all other paths 404 (needs at least one location). */
+    @SerialName("only_locations") val onlyLocations: Boolean? = null,
+    /** Bandwidth to the visitor (download) in Mbit/s for all requests of the host, 0 = unlimited (0-100000). */
+    @SerialName("bw_down_mbit") val bwDownMbit: Int? = null,
+    /** Bandwidth from the visitor (upload) in Mbit/s, 0 = unlimited (0-100000). */
+    @SerialName("bw_up_mbit") val bwUpMbit: Int? = null,
 )
 
 /** Optionally request a certificate for all domains along with the host (runs in the background). */
@@ -197,6 +281,10 @@ public data class ProxyHostRequestCertificate(
     val staging: Boolean? = null,
     /** DNS account. */
     @SerialName("dns_account") val dnsAccount: Long? = null,
+    /** Own CA (source `ca`). */
+    @SerialName("ca_id") val caId: Long? = null,
+    /** Accept the Let's Encrypt terms of service (ACME sources) if the account has not yet. */
+    @SerialName("accept_tos") val acceptTos: Boolean? = null,
 )
 
 /** Optionally create a DNS record in the ipv64 account for each domain (existing ones stay). */
@@ -438,6 +526,12 @@ public data class StreamInput(
     @SerialName("geo_mode") val geoMode: ProxyGeoMode? = null,
     /** ISO country codes. */
     @SerialName("geo_countries") val geoCountries: List<String>? = null,
+    /** Bandwidth to the visitor in Mbit/s for all connections of the stream, 0 = unlimited. */
+    @SerialName("bw_down_mbit") val bwDownMbit: Int? = null,
+    /** Bandwidth from the visitor in Mbit/s, 0 = unlimited. */
+    @SerialName("bw_up_mbit") val bwUpMbit: Int? = null,
+    /** Port mapper: expose the port via CDN64 under this name, empty = local only. */
+    @SerialName("online_name") val onlineName: String? = null,
 )
 
 /** Counters of a stream. */
@@ -492,6 +586,10 @@ public data class Stream(
     @SerialName("geo_mode") val geoMode: ProxyGeoMode? = null,
     /** ISO country codes. */
     @SerialName("geo_countries") val geoCountries: List<String> = emptyList(),
+    /** Bandwidth to the visitor in Mbit/s for all connections of the stream, 0 = unlimited. */
+    @SerialName("bw_down_mbit") val bwDownMbit: Int? = null,
+    /** Bandwidth from the visitor in Mbit/s, 0 = unlimited. */
+    @SerialName("bw_up_mbit") val bwUpMbit: Int? = null,
 )
 
 /** An IP rule of an access list. */
@@ -556,6 +654,29 @@ public data class CDNAccessListInput(
     val users: List<CDNAccessListInputUser>? = null,
     /** IP rules. */
     val rules: List<CDNAccessListRule>? = null,
+    /** Sign in via a login page instead of the browser dialog. */
+    @SerialName("login_page") val loginPage: Boolean? = null,
+    /** Login service (forward auth); `""` = users of the list. */
+    val auth: AccessListAuth? = null,
+    /** Settings of the login service. */
+    val forward: CDNAccessListForward? = null,
+    /** Pass Remote-User, -Email, -Groups, -Name to the target. */
+    @SerialName("pass_user") val passUser: Boolean? = null,
+    /** Name of a new access key; the key appears once in the response. */
+    @SerialName("add_key") val addKey: String? = null,
+    /** Access keys to delete (start/hint). */
+    @SerialName("remove_keys") val removeKeys: List<String>? = null,
+)
+
+/** Settings of the login service of an access list. */
+@Serializable
+public data class CDNAccessListForward(
+    /** Check address, e.g. `http://authentik-server:9000/outpost.goauthentik.io/auth/traefik`. */
+    val address: String? = null,
+    /** Response headers passed to the target. */
+    val headers: List<String>? = null,
+    /** Path of the return route on the host. */
+    val callback: String? = null,
 )
 
 /** An access list with the hosts using it. */
@@ -734,6 +855,10 @@ public data class CDNBlocklists(
     @SerialName("token_set") val tokenSet: Boolean? = null,
     /** AI bot user agent list. */
     @SerialName("ai_bots") val aiBots: CDNBlocklistAiBots? = null,
+    /** Own blocklist: IP addresses or networks rejected for all hosts and streams (exceptions win). */
+    val deny: List<String> = emptyList(),
+    /** Rejected by the own blocklist since start. */
+    val denied: Long? = null,
 )
 
 /** Body of `PUT /cdn64/blocklists`. [token] is redacted in [toString]. */
@@ -745,9 +870,11 @@ public data class UpdateBlocklistsRequest(
     val allow: List<String>? = null,
     /** List token for the live edition (secret). */
     val token: String? = null,
+    /** Own blocklist: IP addresses or networks. */
+    val deny: List<String>? = null,
 ) {
     override fun toString(): String =
-        "UpdateBlocklistsRequest(enabled=$enabled, allow=$allow, token=<redacted>)"
+        "UpdateBlocklistsRequest(enabled=$enabled, allow=$allow, deny=$deny, token=<redacted>)"
 }
 
 /** Overload protection per IPv4 address or IPv6 /64; 0 = limit off. */
@@ -824,6 +951,21 @@ public data class CDNLimitsView(
     val conns: Long? = null,
 )
 
+/** Which rejections are routed to the honeypot. */
+@Serializable
+public data class CDNHoneypotRoute(
+    /** Blocklist rejections. */
+    val blocklist: Boolean? = null,
+    /** Honeypot rejections. */
+    val honeypot: Boolean? = null,
+    /** Exploit rejections. */
+    val exploit: Boolean? = null,
+    /** AI bot rejections. */
+    @SerialName("ai_bot") val aiBot: Boolean? = null,
+    /** Country restriction rejections. */
+    val geo: Boolean? = null,
+)
+
 /** Honeypot64 settings. */
 @Serializable
 public data class CDNHoneypotSettings(
@@ -835,6 +977,8 @@ public data class CDNHoneypotSettings(
     val block: Boolean? = null,
     /** Ban duration in hours (default 24). */
     @SerialName("block_hours") val blockHours: Int? = null,
+    /** Which rejections go to the honeypot; missing = default (everything except geo). */
+    val route: CDNHoneypotRoute? = null,
 )
 
 /** Body of `PUT /cdn64/honeypot` (missing fields stay unchanged). */
@@ -848,6 +992,8 @@ public data class CDNHoneypotSettingsRequest(
     val block: Boolean? = null,
     /** Ban duration in hours (default 24). */
     @SerialName("block_hours") val blockHours: Int? = null,
+    /** Which rejections go to the honeypot; missing = default (everything except geo). */
+    val route: CDNHoneypotRoute? = null,
 )
 
 /** An IP blocked by the honeypot. */
@@ -906,6 +1052,10 @@ public data class CDNOnlineEdge(
     val transport: String? = null,
     /** Total. */
     val total: Int? = null,
+    /** Round trip time to the server in ms. */
+    @SerialName("rtt_ms") val rttMs: Double? = null,
+    /** Packet loss of the node to this server in the last 30 s in percent; -1 = unknown. */
+    @SerialName("loss_pct") val lossPct: Double? = null,
 )
 
 /** A name switched on at CDN64. */
@@ -1079,4 +1229,227 @@ public data class CDNOnlineTest(
     val dns: List<String> = emptyList(),
     /** DNS answer OK. */
     @SerialName("dns_ok") val dnsOk: Boolean? = null,
+)
+
+/** Source of an automatic block for `POST /cdn64/release`. */
+@Serializable
+public enum class ReleaseSource(override val value: String) : ApiValue {
+    @SerialName("") ALL(""),
+    @SerialName("honeypot") HONEYPOT("honeypot"),
+    @SerialName("ban") BAN("ban"),
+}
+
+/** Mode of the JA4 attack tool detection. */
+@Serializable
+public enum class Ja4Mode(override val value: String) : ApiValue {
+    @SerialName("off") OFF("off"),
+    @SerialName("count") COUNT("count"),
+    @SerialName("block") BLOCK("block"),
+}
+
+/** Settings of the Docker sync. */
+@Serializable
+public data class ProxyDockerSettings(
+    /** Proxy hosts from Docker labels (`node64.proxy.*`). */
+    val enabled: Boolean? = null,
+    /** Also read `traefik.*` labels. */
+    val traefik: Boolean? = null,
+    /** Docker API of this node (`unix://` or `tcp://`); empty = default. */
+    @SerialName("docker_host") val dockerHost: String? = null,
+    /** Certificate for new Docker hosts: empty, `auto`, `ipv64`, `http`, `dns:<access>`. */
+    val certificate: String? = null,
+)
+
+/** Docker sync: state, containers and settings. */
+@Serializable
+public data class ProxyDockerView(
+    /** Sync enabled. */
+    val enabled: Boolean? = null,
+    /** Docker API reachable. */
+    val connected: Boolean? = null,
+    /** Docker API as used. */
+    val host: String? = null,
+    /** Error. */
+    val error: String? = null,
+    /** Last sync. */
+    val synced: IsoInstant? = null,
+    /** Containers with `node64.proxy.*` or `traefik.*` labels (free-form). */
+    val containers: List<JsonObject> = emptyList(),
+    /** Settings. */
+    val settings: ProxyDockerSettings? = null,
+)
+
+/** Body of `PUT /cdn64/docker` (missing fields stay). */
+@Serializable
+public data class UpdateProxyDockerRequest(
+    /** Proxy hosts from Docker labels. */
+    val enabled: Boolean? = null,
+    /** Also read `traefik.*` labels. */
+    val traefik: Boolean? = null,
+    /** Docker API of this node. */
+    @SerialName("docker_host") val dockerHost: String? = null,
+    /** Certificate for new Docker hosts. */
+    val certificate: String? = null,
+    /** Accept the Let's Encrypt terms (needed with [certificate] until the account accepted them). */
+    @SerialName("accept_tos") val acceptTos: Boolean? = null,
+)
+
+/** One JA4 fingerprint with its hits. */
+@Serializable
+public data class CDNJa4Hit(
+    /** JA4 fingerprint. */
+    val ja4: String? = null,
+    /** Hits. */
+    val hits: Long? = null,
+)
+
+/** Protection of one name in [CDNProtectionStats]. */
+@Serializable
+public data class CDNProtectionHost(
+    /** Name ID at ipv64. */
+    val id: Long? = null,
+    /** Name. */
+    val fqdn: String? = null,
+    /** Mode. */
+    val mode: Int? = null,
+    /** Host ID of this node (missing = none). */
+    @SerialName("host_id") val hostId: Long? = null,
+    /** Blocked requests. */
+    val blocked: Long? = null,
+    /** Overload. */
+    val overload: Long? = null,
+    /** WAF on. */
+    val waf: Boolean? = null,
+    /** JA4 mode: empty, `off`, `count`, `block`. */
+    val ja4: String? = null,
+)
+
+/** CDN64 statistics: what the CDN64 servers blocked for the names of the account. */
+@Serializable
+public data class CDNProtectionStats(
+    /** Days. */
+    val days: Int? = null,
+    /** Global JA4 mode (`count` = start phase, `block`). */
+    @SerialName("ja4_global") val ja4Global: String? = null,
+    /** Totals (`blocked_list`, `blocked_acl`, `blocked_flood`, `blocked_limit`, `blocked_waf`, `blocked_ja4`, `ja4_hits`, `blocked_ips`, `conns`, `conns_v4`). */
+    val totals: JsonObject? = null,
+    /** Daily values (free-form). */
+    val daily: List<JsonObject> = emptyList(),
+    /** Top JA4 fingerprints. */
+    @SerialName("ja4_top") val ja4Top: List<CDNJa4Hit> = emptyList(),
+    /** Names. */
+    val hosts: List<CDNProtectionHost> = emptyList(),
+)
+
+/** Body of `POST /cdn64/release`. */
+@Serializable
+public data class ReleaseBlockRequest(
+    /** IP or /64. */
+    val ip: String,
+    /** Block of the honeypot, the DoS protection, or both (default). */
+    val from: ReleaseSource? = null,
+)
+
+/** CDN64 servers and connections per server. */
+@Serializable
+public data class CDNServers(
+    /** Assigned servers. */
+    val count: Int? = null,
+    /** Chosen (0 = maximum or all, also future). */
+    val choice: Int? = null,
+    /** Maximum. */
+    val max: Int? = null,
+    /** All servers. */
+    val all: Boolean? = null,
+    /** Total. */
+    val total: Int? = null,
+    /** Number selectable (class). */
+    val selectable: Boolean? = null,
+    /** Assigned servers. */
+    val assigned: List<String> = emptyList(),
+    /** Currently in DNS. */
+    val active: List<String> = emptyList(),
+    /** Connections per server. */
+    val sessions: Int? = null,
+    /** Maximum connections per server. */
+    @SerialName("sessions_max") val sessionsMax: Int? = null,
+    /** Failover: failed to replacement. */
+    val replaced: Map<String, String> = emptyMap(),
+    /** Selectable counts (0 = all); empty = fixed. */
+    val options: List<Int> = emptyList(),
+    /** Selectable connections per server; empty = fixed. */
+    @SerialName("session_options") val sessionOptions: List<Int> = emptyList(),
+)
+
+/** Body of `PUT /cdn64/online/servers` and `PUT /cdn64/hosts/{id}/servers`. */
+@Serializable
+public data class SetCDNServersRequest(
+    /** Servers (0 = all, also future; only classes without limit). */
+    val count: Int,
+    /** Connections per server (min. 1); missing = unchanged. */
+    val sessions: Int? = null,
+)
+
+/** Body of the pause endpoints. */
+@Serializable
+public data class PauseOnlineRequest(
+    /** Pause (true) or resume (false). */
+    val paused: Boolean? = null,
+)
+
+/** Body of `POST /cdn64/hosts/{id}/localdns`; without addresses PROXY64 uses the suggested ones. */
+@Serializable
+public data class HostLocalDnsRequest(
+    /** IPv4 (A records). */
+    val ipv4: String? = null,
+    /** IPv6 (AAAA records). */
+    val ipv6: String? = null,
+)
+
+/** Response of `POST /cdn64/hosts/{id}/localdns`. */
+@Serializable
+public data class HostLocalDnsResult(
+    /** Created records. */
+    val added: Int? = null,
+    /** `"name type"` already present. */
+    val skipped: List<String> = emptyList(),
+    /** Excluded names (wildcards, main domains). */
+    val excluded: List<String> = emptyList(),
+    /** IPv4 used. */
+    val ipv4: String? = null,
+    /** IPv6 used. */
+    val ipv6: String? = null,
+)
+
+/** Body of `PUT /cdn64/hosts/{id}/protection` (missing fields stay). */
+@Serializable
+public data class HostProtectionRequest(
+    /** Pattern WAF (mode 2/3). */
+    val waf: Boolean? = null,
+    /** Attack tools (JA4). */
+    val ja4: Ja4Mode? = null,
+)
+
+/** CDN64 protection of one name. */
+@Serializable
+public data class HostProtectionName(
+    /** Name ID at ipv64. */
+    val id: Long? = null,
+    /** Name. */
+    val fqdn: String? = null,
+    /** WAF on. */
+    val waf: Boolean? = null,
+    /** JA4 mode. */
+    val ja4: String? = null,
+)
+
+/** CDN64 protection (WAF, JA4) of all names of a host. */
+@Serializable
+public data class HostProtection(
+    /** WAF on. */
+    val waf: Boolean? = null,
+    /** JA4 mode. */
+    val ja4: String? = null,
+    /** Names. */
+    val names: List<HostProtectionName> = emptyList(),
 )

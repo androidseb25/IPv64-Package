@@ -4,6 +4,7 @@ import de.sr.ipv64.model.ApiValue
 import de.sr.ipv64.model.IsoInstant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 /** Profile of the trap services. */
 @Serializable
@@ -603,4 +604,121 @@ public data class Honeypot64LiveEvent(
     val port: Int? = null,
     /** Sensor. */
     val source: String? = null,
+)
+
+/** Result of creating a decoy DNS record. */
+@Serializable
+public enum class HoneypotCertDnsResult(override val value: String) : ApiValue {
+    @SerialName("created") CREATED("created"),
+    @SerialName("exists") EXISTS("exists"),
+    @SerialName("error") ERROR("error"),
+}
+
+/** Body of `POST /honeypot/cert`. */
+@Serializable
+public data class HoneypotCertRequest(
+    /** Domain, e.g. `decoy.ipv64.net`. */
+    val domain: String,
+    /** Decoy names, e.g. `mail`, `vpn`. */
+    val names: List<String>,
+    /** IP addresses the names point to. */
+    @SerialName("dns_targets") val dnsTargets: List<String>? = null,
+)
+
+/** DNS record created for a decoy certificate. */
+@Serializable
+public data class HoneypotCertDns(
+    /** Record name. */
+    val name: String? = null,
+    /** Record type. */
+    val type: String? = null,
+    /** Result. */
+    val result: HoneypotCertDnsResult? = null,
+    /** Error message. */
+    val error: String? = null,
+)
+
+/** Response of `POST /honeypot/cert`. */
+@Serializable
+public data class HoneypotCert(
+    /** Certificate ID. */
+    @SerialName("cert_id") val certId: Long? = null,
+    /** Names. */
+    val names: List<String> = emptyList(),
+    /** Certificate is selected for the honeypot. */
+    val selected: Boolean? = null,
+    /** DNS records. */
+    val dns: List<HoneypotCertDns> = emptyList(),
+    /** DNS error. */
+    @SerialName("dns_error") val dnsError: String? = null,
+)
+
+/** Body of `POST /honeypot/watch`. */
+@Serializable
+public data class HoneypotWatchRequest(
+    /** Network or single IP, e.g. `203.0.113.0/24`. */
+    val cidr: String,
+    /** Label. */
+    val label: String? = null,
+)
+
+/** Watched network (early warning). */
+@Serializable
+public data class HoneypotWatchNetwork(
+    /** ID. */
+    val id: Long? = null,
+    /** Network. */
+    val cidr: String? = null,
+    /** Label. */
+    val label: String? = null,
+    /** Verified by ipv64. */
+    val verified: Boolean? = null,
+    /** Creation time (not documented as a timestamp format; kept as text). */
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+/** Limits of the early warning. */
+@Serializable
+public data class HoneypotWatchLimits(
+    /** Maximum number of networks. */
+    val max: Int? = null,
+    /** Smallest allowed IPv4 prefix. */
+    @SerialName("min_prefix_v4") val minPrefixV4: Int? = null,
+    /** Smallest allowed IPv6 prefix. */
+    @SerialName("min_prefix_v6") val minPrefixV6: Int? = null,
+)
+
+/** DynDNS IP that is watched as well. */
+@Serializable
+public data class HoneypotWatchDynDns(
+    /** IP. */
+    val ip: String? = null,
+    /** Domain. */
+    val domain: String? = null,
+)
+
+/** Response of `GET /honeypot/watch`. [state] is not documented by the API. */
+@Serializable
+public data class HoneypotWatch(
+    /** Limits. */
+    val limits: HoneypotWatchLimits? = null,
+    /** Own networks. */
+    val networks: List<HoneypotWatchNetwork> = emptyList(),
+    /** DynDNS IPs. */
+    val dyndns: List<HoneypotWatchDynDns> = emptyList(),
+    /** Limit reached. */
+    val full: Boolean? = null,
+    /** Watching runs. */
+    val running: Boolean? = null,
+    /** State and hits. */
+    val state: JsonObject? = null,
+)
+
+/** Response of `POST /honeypot/watch/check`. */
+@Serializable
+public data class HoneypotWatchCheck(
+    /** Number of new hits. */
+    @SerialName("new_hits") val newHits: Int? = null,
+    /** State. */
+    val state: JsonObject? = null,
 )

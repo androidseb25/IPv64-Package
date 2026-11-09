@@ -11,6 +11,7 @@ import de.sr.ipv64.node64.model.StatusNoticeUpdateInput
 import de.sr.ipv64.node64.model.StatusPage
 import de.sr.ipv64.node64.model.StatusPageRequest
 import de.sr.ipv64.node64.model.StatusPageUpdateRequest
+import de.sr.ipv64.node64.model.StatusPageItemsRequest
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
@@ -75,4 +76,8 @@ public class StatusPagesApi internal constructor(private val transport: HttpTran
     public suspend fun deleteLogo(id: Long) {
         transport.unit(Method.DELETE, ApiPath("status-pages", id.toString(), "logo"))
     }
+
+    /** Adds entries (check tokens, resources) to a group. `POST /status-pages/{id}/items` */
+    public suspend fun addItems(id: Long, request: StatusPageItemsRequest): StatusPage =
+        transport.json(Method.POST, ApiPath("status-pages", id.toString(), "items"), body = transport.body(request))
 }

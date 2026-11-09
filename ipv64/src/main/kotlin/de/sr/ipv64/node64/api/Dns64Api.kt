@@ -7,6 +7,7 @@ import de.sr.ipv64.internal.body
 import de.sr.ipv64.internal.json
 import de.sr.ipv64.internal.query
 import de.sr.ipv64.node64.model.*
+import kotlinx.serialization.json.JsonArray
 
 /** Tag *DNS64*: local DNS resolver with filtering, records, groups, forwards, rewrites and zones. */
 public class Dns64Api internal constructor(private val transport: HttpTransport) {
@@ -69,6 +70,11 @@ public class Dns64Api internal constructor(private val transport: HttpTransport)
     public suspend fun addList(url: String, name: String? = null): DNS64Settings =
         transport.json(Method.POST, ApiPath("dns64", "lists"), body = transport.body(DNS64AddListRequest(url, name)))
 
+    /** Adds several custom blocklists at once; each entry of [urls] is a URL, optionally `Name | URL`. Result per URL. `POST /dns64/lists`
+     * If no list was added the server answers 422; the result is then only in [Node64ApiException.rawBody]. */
+    public suspend fun addLists(urls: List<String>): DNS64AddListsResult =
+        transport.json(Method.POST, ApiPath("dns64", "lists"), body = transport.body(DNS64AddListsRequest(urls)))
+
     /** Removes a custom blocklist identified by its [url] (query parameter). `DELETE /dns64/lists` */
     public suspend fun removeList(url: String): DNS64Settings =
         transport.json(Method.DELETE, ApiPath("dns64", "lists"), query("url" to url))
@@ -114,6 +120,61 @@ public class Dns64Api internal constructor(private val transport: HttpTransport)
      */
     public suspend fun importAllowlist(domains: List<String>): DNS64AllowlistImportResult =
         transport.json(Method.POST, ApiPath("dns64", "allowlist", "import"), body = transport.body(DNS64AllowlistImportRequest(domains)))
+
+    /** Allow lists (URL lists, not single domains; free-form entries). `GET /dns64/allowlists` */
+    public suspend fun allowLists(): JsonArray =
+        transport.json(Method.GET, ApiPath("dns64", "allowlists"))
+
+    /** Adds an allow list from [url] with an optional display [name]. `POST /dns64/allowlists` */
+    public suspend fun addAllowList(url: String, name: String? = null): DNS64Settings =
+        transport.json(Method.POST, ApiPath("dns64", "allowlists"), body = transport.body(DNS64AddListRequest(url, name)))
+
+    /** Adds several allow lists at once; each entry of [urls] is a URL, optionally `Name | URL`. `POST /dns64/allowlists` */
+    public suspend fun addAllowLists(urls: List<String>): DNS64AddListsResult =
+        transport.json(Method.POST, ApiPath("dns64", "allowlists"), body = transport.body(DNS64AddListsRequest(urls)))
+
+    /** Removes an allow list identified by its [url] (query parameter). `DELETE /dns64/allowlists` */
+    public suspend fun removeAllowList(url: String): DNS64Settings =
+        transport.json(Method.DELETE, ApiPath("dns64", "allowlists"), query("url" to url))
+
+    /** Denied domains (including subdomains). `GET /dns64/denylist` */
+    public suspend fun denylist(): List<DNS64DeniedDomain> =
+        transport.json(Method.GET, ApiPath("dns64", "denylist"))
+
+    /** Denies a domain. `POST /dns64/denylist` */
+    public suspend fun deny(domain: String): DNS64DeniedDomain =
+        transport.json(Method.POST, ApiPath("dns64", "denylist"), body = transport.body(DNS64DenyDomainRequest(domain)))
+
+    /** Removes a denied domain (query parameter). `DELETE /dns64/denylist` */
+    public suspend fun removeDenied(domain: String) {
+        transport.unit(Method.DELETE, ApiPath("dns64", "denylist"), query("domain" to domain))
+    }
+
+    /** Replaces the whole denylist with [domains]. `PUT /dns64/denylist` */
+    public suspend fun replaceDenylist(domains: List<String>): DNS64DenylistReplaceResult =
+        transport.json(Method.PUT, ApiPath("dns64", "denylist"), body = transport.body(DNS64DenylistReplaceRequest(domains)))
+
+    /** Docker integration state with containers. `GET /dns64/docker` */
+    public suspend fun docker(): DNS64DockerState =
+        transport.json(Method.GET, ApiPath("dns64", "docker"))
+
+    /** Known services (blockable by group rules) with categories and groups. `GET /dns64/services` */
+    public suspend fun services(): DNS64Services =
+        transport.json(Method.GET, ApiPath("dns64", "services"))
+
+    /** Paged, searchable top list. `GET /dns64/top/list` */
+    public suspend fun topList(
+        kind: DNS64TopKind,
+        range: DNS64Range? = null,
+        q: String? = null,
+        sort: String? = null,
+        dir: String? = null,
+        limit: Int? = null,
+        offset: Int? = null,
+    ): DNS64TopListPage = transport.json(
+        Method.GET, ApiPath("dns64", "top", "list"),
+        query("kind" to kind, "range" to range, "q" to q, "sort" to sort, "dir" to dir, "limit" to limit, "offset" to offset),
+    )
 
     /** Current settings. `GET /dns64/settings` */
     public suspend fun settings(): DNS64Settings =

@@ -3,6 +3,11 @@ package de.sr.ipv64.api
 import de.sr.ipv64.MockServerTest
 import de.sr.ipv64.model.Hc2ChannelType
 import de.sr.ipv64.model.Hc2SettingsUpdate
+import de.sr.ipv64.model.Hc2StatusGroup
+import de.sr.ipv64.model.Hc2StatusNoticeInput
+import de.sr.ipv64.model.Hc2StatusNoticeKind
+import de.sr.ipv64.model.Hc2StatusPageInput
+import de.sr.ipv64.model.Hc2StatusPageLayout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
@@ -186,5 +191,80 @@ class Hc2ApiTest : MockServerTest() {
         assertEquals(true, type.fields[0].secret)
         assertEquals(listOf("a", "b"), type.fields[1].options)
         assertEquals("a", type.fields[1].default)
+    }
+
+    @Test
+    fun `status pages list create get update delete`() = test {
+        val page = """{"id":5,"slug":"meinstatus","title":"T","layout":"cards","published":true,
+            "groups":[{"name":"G","tokens":["a"]}],"created_at":"2026-01-01T00:00:00Z"}"""
+        enqueueJson("""{"data":[$page]}""")
+        enqueueJson("""{"data":$page}""", 201)
+        enqueueJson("""{"data":$page}""")
+        enqueueJson("""{"data":$page}""")
+        enqueueNoContent()
+
+        val list = client().hc2.statusPages()
+        var r = takeRequest()
+        assertEquals("GET", r.method)
+        assertEquals("/hc2/status-pages", r.apiTarget)
+        assertEquals(Hc2StatusPageLayout.CARDS, list.single().layout)
+        assertEquals(listOf("a"), list.single().groups.single().tokens)
+
+        client().hc2.createStatusPage(Hc2StatusPageInput(title = "T", groups = listOf(Hc2StatusGroup(tokens = listOf("a")))))
+        r = takeRequest()
+        assertEquals("POST", r.method)
+        assertEquals("/hc2/status-pages", r.apiTarget)
+        val sent = body(r.bodyText())
+        assertEquals(setOf("title", "groups"), sent.keys)
+
+        assertEquals(5L, client().hc2.statusPage(5).id)
+        r = takeRequest()
+        assertEquals("GET", r.method)
+        assertEquals("/hc2/status-pages/5", r.apiTarget)
+
+        client().hc2.updateStatusPage(5, Hc2StatusPageInput(layout = Hc2StatusPageLayout.LIST))
+        r = takeRequest()
+        assertEquals("PATCH", r.method)
+        assertEquals("/hc2/status-pages/5", r.apiTarget)
+        assertEquals("list", body(r.bodyText())["layout"]?.jsonPrimitive?.content)
+
+        client().hc2.deleteStatusPage(5)
+        r = takeRequest()
+        assertEquals("DELETE", r.method)
+        assertEquals("/hc2/status-pages/5", r.apiTarget)
+    }
+
+    @Test
+    fun `status notices list create update delete`() = test {
+        val notice = """{"id":9,"kind":"incident","title":"N","body":"b","resolved":true,
+            "created_at":"2026-01-01T00:00:00Z","resolved_at":null}"""
+        enqueueJson("""{"data":[$notice]}""")
+        enqueueJson("""{"data":$notice}""", 201)
+        enqueueJson("""{"data":$notice}""")
+        enqueueNoContent()
+
+        val list = client().hc2.statusNotices(5)
+        var r = takeRequest()
+        assertEquals("GET", r.method)
+        assertEquals("/hc2/status-pages/5/notices", r.apiTarget)
+        assertEquals(Hc2StatusNoticeKind.INCIDENT, list.single().kind)
+        assertNull(list.single().resolvedAt)
+
+        client().hc2.createStatusNotice(5, Hc2StatusNoticeInput(kind = Hc2StatusNoticeKind.INFO, title = "N"))
+        r = takeRequest()
+        assertEquals("POST", r.method)
+        assertEquals("/hc2/status-pages/5/notices", r.apiTarget)
+        assertEquals("info", body(r.bodyText())["kind"]?.jsonPrimitive?.content)
+
+        client().hc2.updateStatusNotice(5, 9, Hc2StatusNoticeInput(resolved = true))
+        r = takeRequest()
+        assertEquals("PATCH", r.method)
+        assertEquals("/hc2/status-pages/5/notices/9", r.apiTarget)
+        assertEquals(setOf("resolved"), body(r.bodyText()).keys)
+
+        client().hc2.deleteStatusNotice(5, 9)
+        r = takeRequest()
+        assertEquals("DELETE", r.method)
+        assertEquals("/hc2/status-pages/5/notices/9", r.apiTarget)
     }
 }

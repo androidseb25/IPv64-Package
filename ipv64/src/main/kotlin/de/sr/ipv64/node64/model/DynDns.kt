@@ -139,7 +139,7 @@ public data class DynDNSTargetInput(
 }
 
 /**
- * Body of `PUT /dyndns/targets/{id}`. Domain and host cannot be changed. An empty [token] keeps the
+ * Body of `PUT /dyndns/targets/{id}`. An empty [token] keeps the
  * stored one. [token] is redacted in [toString].
  */
 @Serializable
@@ -160,10 +160,19 @@ public data class UpdateDynDnsTargetRequest(
     val iface: String? = null,
     /** Target is switched on. */
     val enabled: Boolean? = null,
+    /** Domain. */
+    val domain: String? = null,
+    /** Host. */
+    val host: String? = null,
+    /** Token kind (default `record`). */
+    @SerialName("token_kind") val tokenKind: DynDnsTokenKind? = null,
+    /** Record ID. */
+    @SerialName("record_id") val recordId: Long? = null,
 ) {
     override fun toString(): String =
         "UpdateDynDnsTargetRequest(token=${if (token == null) "null" else "<redacted>"}, mode4=$mode4, mode6=$mode6, " +
-            "fixed4=$fixed4, fixed6=$fixed6, suffix6=$suffix6, iface=$iface, enabled=$enabled)"
+            "fixed4=$fixed4, fixed6=$fixed6, suffix6=$suffix6, iface=$iface, enabled=$enabled, domain=$domain, host=$host, " +
+            "tokenKind=$tokenKind, recordId=$recordId)"
 }
 
 /** Settings of the DynDNS module (response of `GET /dyndns/settings`). */
@@ -286,3 +295,10 @@ public enum class DynDnsFamily(override val value: String) : ApiValue {
     @SerialName("4") IPV4("4"),
     @SerialName("6") IPV6("6"),
 }
+
+/** Body and response of `PUT /dyndns/cluster`. */
+@Serializable
+public data class DynDnsClusterPreference(
+    /** Preferred node of the cluster. */
+    @SerialName("preferred_node") val preferredNode: String,
+)

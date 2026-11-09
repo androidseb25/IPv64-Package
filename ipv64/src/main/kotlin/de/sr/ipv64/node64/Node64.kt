@@ -12,13 +12,18 @@ import de.sr.ipv64.node64.api.DockerApi
 import de.sr.ipv64.node64.api.DynDnsApi
 import de.sr.ipv64.node64.api.EdgeApi
 import de.sr.ipv64.node64.api.HoneypotApi
+import de.sr.ipv64.node64.api.Ipv64ChannelsApi
 import de.sr.ipv64.node64.api.LinkApi
 import de.sr.ipv64.node64.api.MaintenanceApi
+import de.sr.ipv64.node64.api.McpApi
 import de.sr.ipv64.node64.api.NodeApi
 import de.sr.ipv64.node64.api.OnlineChecksApi
 import de.sr.ipv64.node64.api.ProxmoxApi
 import de.sr.ipv64.node64.api.Proxy64Api
+import de.sr.ipv64.node64.api.Sonar64Api
 import de.sr.ipv64.node64.api.StatusPagesApi
+import de.sr.ipv64.node64.api.UpdateApi
+import de.sr.ipv64.node64.api.UsersApi
 import de.sr.ipv64.node64.internal.node64ApiException
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -120,6 +125,21 @@ public class Node64(
     /** Honeypot64 sensor of the node. */
     public val honeypot: HoneypotApi = HoneypotApi(transport)
 
+    /** Sonar64 latency measurements between participating nodes. */
+    public val sonar64: Sonar64Api = Sonar64Api(transport)
+
+    /** Self-update of the node (check, apply, reset, settings). */
+    public val update: UpdateApi = UpdateApi(transport)
+
+    /** E-mail, SMS and app notification channels at ipv64.net (`/ipv64/channels`). */
+    public val ipv64Channels: Ipv64ChannelsApi = Ipv64ChannelsApi(transport)
+
+    /** Users of the node and the own profile. */
+    public val users: UsersApi = UsersApi(transport)
+
+    /** MCP switch, areas and keys. */
+    public val mcp: McpApi = McpApi(transport)
+
     /**
      * Returns a client that writes [actor] as the actor name into the node's audit log
      * (`X-Agent-Actor`). The returned client shares the connection pool with this one.
@@ -136,6 +156,6 @@ public class Node64(
 
     public companion object {
         /** Default `User-Agent` header. */
-        public const val DEFAULT_USER_AGENT: String = "IPv64-Android/1.0.0 (Node64)"
+        public const val DEFAULT_USER_AGENT: String = "IPv64-Android/1.1.0 (Node64)"
     }
 }

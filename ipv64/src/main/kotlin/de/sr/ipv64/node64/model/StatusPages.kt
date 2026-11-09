@@ -287,3 +287,23 @@ public data class StatusError(
     /** i18n key, e.g. `hc.status.err.slug`. */
     val key: String? = null,
 )
+
+/** Resource entry for [StatusPageItemsRequest]. */
+@Serializable
+public data class StatusPageItemResource(
+    /** System ID. */
+    @SerialName("system_id") val systemId: Long? = null,
+    /** `node/<name>`, `qemu/<vmid>`, `lxc/<vmid>` or `docker/<name>`. */
+    val key: String? = null,
+)
+
+/** Body of `POST /status-pages/{id}/items`. */
+@Serializable
+public data class StatusPageItemsRequest(
+    /** Group (0 or missing = first). */
+    @SerialName("group_id") val groupId: Long? = null,
+    /** Check tokens. */
+    val tokens: List<String>? = null,
+    /** Resources. */
+    val resources: List<StatusPageItemResource>? = null,
+)

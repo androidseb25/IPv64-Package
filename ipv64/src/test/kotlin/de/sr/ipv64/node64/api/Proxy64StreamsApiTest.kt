@@ -107,4 +107,16 @@ class Proxy64StreamsApiTest : Node64ApiTestBaseB() {
         assertEquals("zzz", streams.createHealthcheck(4).token)
         expectRequest("POST", "/api/cdn64/streams/4/healthcheck")
     }
+
+    @Test
+    fun `bandwidth and online name`() = test<Unit> {
+        enqueueJson("""{"id":4,"bw_down_mbit":50,"bw_up_mbit":5}""")
+        val s = streams.create(StreamInput(listenPort = 1, bwDownMbit = 50, bwUpMbit = 5, onlineName = "x.example.com"))
+        assertEquals(50, s.bwDownMbit)
+        assertEquals(5, s.bwUpMbit)
+        assertEquals(
+            js("""{"listen_port":1,"bw_down_mbit":50,"bw_up_mbit":5,"online_name":"x.example.com"}"""),
+            expectRequest("POST", "/api/cdn64/streams").jsonBody(),
+        )
+    }
 }

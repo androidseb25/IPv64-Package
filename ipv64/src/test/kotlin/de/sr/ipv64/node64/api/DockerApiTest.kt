@@ -19,6 +19,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
 import kotlin.time.Instant
+import de.sr.ipv64.node64.model.AsCheckAllScope
+import de.sr.ipv64.node64.model.PVEProbeRequest
 
 class DockerApiTest : Node64ApiTestBaseA() {
 
@@ -284,5 +286,68 @@ class DockerApiTest : Node64ApiTestBaseA() {
         assertEquals("DELETE", first.method)
         assertEquals("/api/healthchecks/docker/systems/6/settings?key=docker%2Fabc", first.target)
         assertEquals("/api/healthchecks/docker/systems/6/settings", takeRequest().target)
+    }
+
+    @Test
+    fun `createSystem sends credential fields and redacts secrets`() = test {
+        enqueueJson(systemJson, code = 201)
+        val req = DockerSystemRequest(secret = "SEC", privateKey = "PRIV", pinSha256 = "AB", generateKey = true, ca = "")
+
+        node().docker.createSystem(req)
+
+        takeRequest().assertJsonBody("""{"secret":"SEC","pin_sha256":"AB","private_key":"PRIV","ca":"","generate_key":true}""")
+        assertFalse(req.toString().contains("SEC") || req.toString().contains("PRIV"))
+    }
+
+    @Test
+    fun `enable posts without body`() = test {
+        enqueueJson(systemJson)
+
+        assertSystem(node().docker.enable())
+
+        val request = takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/healthchecks/docker/enable", request.target)
+    }
+
+    @Test
+    fun `probe posts request and decodes result`() = test {
+        enqueueJson(
+            """{"ok":true,"fingerprint":"ab","fingerprint_display":"SHA256:x","trusted":false,"need_confirm":true,
+            "pin_differs":false,"info":{"name":"h","os":"linux","version":"27","ncpu":4,"mem_total":1024},
+            "containers":5,"running":3,"warning":"w","public_key":"ssh-ed25519 A"}""",
+        )
+
+        val p = node().docker.probe(PVEProbeRequest(systemId = 6, addresses = listOf("ssh://h"), secret = "SEC"))
+
+        val request = takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/healthchecks/docker/probe", request.target)
+        request.assertJsonBody("""{"system_id":6,"addresses":["ssh://h"],"secret":"SEC"}""")
+        assertEquals(true, p.ok)
+        assertEquals("SHA256:x", p.fingerprintDisplay)
+        assertEquals(true, p.needConfirm)
+        assertEquals(4, p.info?.ncpu)
+        assertEquals(1024L, p.info?.memTotal)
+        assertEquals(5, p.containers)
+        assertEquals("ssh-ed25519 A", p.publicKey)
+    }
+
+    @Test
+    fun `asCheckAll sends scope and decodes`() = test {
+        enqueueJson("""{"added":2,"failed":1,"error":"e","key":"k"}""")
+        enqueueJson("""{"added":0,"failed":0}""")
+
+        val r = node().docker.asCheckAll(6, AsCheckAllScope.NODES)
+        node().docker.asCheckAll(6)
+
+        val first = takeRequest()
+        assertEquals("POST", first.method)
+        assertEquals("/api/healthchecks/docker/systems/6/ascheck-all?scope=nodes", first.target)
+        assertEquals("/api/healthchecks/docker/systems/6/ascheck-all", takeRequest().target)
+        assertEquals(2, r.added)
+        assertEquals(1, r.failed)
+        assertEquals("e", r.error)
+        assertEquals("k", r.key)
     }
 }

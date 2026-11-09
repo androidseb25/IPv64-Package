@@ -287,4 +287,29 @@ class DynDnsApiTest : Node64ApiTestBaseA() {
         assertEquals("/api/dyndns/targets/3/token", request.target)
         assertTarget(target)
     }
+
+    @Test
+    fun `updateTarget sends domain host token kind and record id`() = test {
+        enqueueJson(targetJson)
+
+        node().dynDns.updateTarget(
+            3,
+            UpdateDynDnsTargetRequest(domain = "a.de", host = "h", tokenKind = DynDnsTokenKind.DOMAIN, recordId = 7),
+        )
+
+        takeRequest().assertJsonBody("""{"domain":"a.de","host":"h","token_kind":"domain","record_id":7}""")
+    }
+
+    @Test
+    fun `setClusterPreference sends preferred_node`() = test {
+        enqueueJson("""{"preferred_node":"n1"}""")
+
+        val r = node().dynDns.setClusterPreference("n1")
+
+        val request = takeRequest()
+        assertEquals("PUT", request.method)
+        assertEquals("/api/dyndns/cluster", request.target)
+        request.assertJsonBody("""{"preferred_node":"n1"}""")
+        assertEquals("n1", r.preferredNode)
+    }
 }

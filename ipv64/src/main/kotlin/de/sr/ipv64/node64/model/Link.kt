@@ -164,3 +164,36 @@ public data class SetIpv64KeyRequest(
 ) {
     override fun toString(): String = "SetIpv64KeyRequest(key=<redacted>)"
 }
+
+/** Response of `POST /link/start`. [code] grants linking and is redacted in [toString]. */
+@Serializable
+public data class LinkStart(
+    /** Pairing code. */
+    val code: String? = null,
+    /** Expiry of the code. */
+    @SerialName("expires_at") val expiresAt: IsoInstant? = null,
+    /** Hub. */
+    val hub: String? = null,
+) {
+    override fun toString(): String = "LinkStart(code=<redacted>, expiresAt=$expiresAt, hub=$hub)"
+}
+
+/** Response of `GET /link/status`. [code] is redacted in [toString]. */
+@Serializable
+public data class LinkStatus(
+    /** Node is linked. */
+    val linked: Boolean? = null,
+    /** Connection to the hub is established. */
+    val connected: Boolean? = null,
+    /** Open code. */
+    val code: String? = null,
+    /** Hub. */
+    val hub: String? = null,
+    /** Error message. */
+    val error: String? = null,
+    /** A code request is open. */
+    val requesting: Boolean? = null,
+) {
+    override fun toString(): String =
+        "LinkStatus(linked=$linked, connected=$connected, code=<redacted>, hub=$hub, error=$error, requesting=$requesting)"
+}

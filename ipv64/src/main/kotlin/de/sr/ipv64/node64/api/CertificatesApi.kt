@@ -24,6 +24,8 @@ import de.sr.ipv64.node64.model.ImportCaRequest
 import de.sr.ipv64.node64.model.UpdateCertAccountRequest
 import de.sr.ipv64.node64.model.UpdateDnsAccountRequest
 import de.sr.ipv64.node64.model.UploadCertificateRequest
+import de.sr.ipv64.node64.model.DnsCheckResolvers
+import de.sr.ipv64.node64.model.DnsCheckRun
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import okhttp3.MediaType.Companion.toMediaType
@@ -229,6 +231,18 @@ public class CertificatesApi internal constructor(private val transport: HttpTra
     public suspend fun deleteAcmeCa(id: Long) {
         transport.unit(Method.DELETE, ApiPath("acme-cas", id.toString()))
     }
+
+    /** Own resolvers of the DNS-01 check. `GET /certs/dns-check` */
+    public suspend fun dnsCheck(): DnsCheckResolvers =
+        transport.json(Method.GET, ApiPath("certs", "dns-check"))
+
+    /** Saves the own resolvers of the DNS-01 check. `PUT /certs/dns-check` */
+    public suspend fun updateDnsCheck(request: DnsCheckResolvers): DnsCheckResolvers =
+        transport.json(Method.PUT, ApiPath("certs", "dns-check"), body = transport.body(request))
+
+    /** Tests the DNS-01 check: which paths work from here. `POST /certs/dns-check/run` */
+    public suspend fun runDnsCheck(): DnsCheckRun =
+        transport.json(Method.POST, ApiPath("certs", "dns-check", "run"))
 }
 
 @Serializable

@@ -14,6 +14,8 @@ import de.sr.ipv64.node64.model.LinkWithApiKeyRequest
 import de.sr.ipv64.node64.model.ResolveConflictRequest
 import de.sr.ipv64.node64.model.SetIpv64KeyRequest
 import de.sr.ipv64.node64.model.UnlinkRequest
+import de.sr.ipv64.node64.model.LinkStart
+import de.sr.ipv64.node64.model.LinkStatus
 
 /** Tag *Verknüpfung*: link of the node with an ipv64.net account. */
 public class LinkApi internal constructor(private val transport: HttpTransport) {
@@ -67,5 +69,18 @@ public class LinkApi internal constructor(private val transport: HttpTransport) 
     /** Removes the ipv64 API key. `DELETE /ipv64/key` */
     public suspend fun deleteIpv64Key() {
         transport.unit(Method.DELETE, ApiPath("ipv64", "key"))
+    }
+
+    /** Linking by code: fetches a code from the hub. `POST /link/start` */
+    public suspend fun start(): LinkStart =
+        transport.json(Method.POST, ApiPath("link", "start"))
+
+    /** State of linking by code (asks the hub while a code is open). `GET /link/status` */
+    public suspend fun status(): LinkStatus =
+        transport.json(Method.GET, ApiPath("link", "status"))
+
+    /** Discards the open code. `POST /link/cancel` */
+    public suspend fun cancel() {
+        transport.unit(Method.POST, ApiPath("link", "cancel"))
     }
 }

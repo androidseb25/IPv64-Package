@@ -17,6 +17,7 @@ public enum class CertificateSource(override val value: String) : ApiValue {
     @SerialName("upload") UPLOAD("upload"),
     @SerialName("ca") CA("ca"),
     @SerialName("self") SELF("self"),
+    @SerialName("auto") AUTO("auto"),
 }
 
 /** State of a certificate. */
@@ -384,3 +385,36 @@ public class CertBundleResult(
     override fun toString(): String =
         "CertBundleResult(content=${content?.let { "${it.size} bytes" }}, etag=$etag, notAfter=$notAfter)"
 }
+
+/** Own resolvers of the DNS-01 check; body and response of `PUT /certs/dns-check`, response of `GET /certs/dns-check`. */
+@Serializable
+public data class DnsCheckResolvers(
+    /** Resolvers (host or IP). */
+    val resolvers: List<String> = emptyList(),
+)
+
+/** One path of the DNS-01 test. */
+@Serializable
+public data class DnsCheckPath(
+    /** Name of the path. */
+    val name: String? = null,
+    /** Nameserver of ipv64 directly (otherwise public resolver). */
+    val direct: Boolean? = null,
+    /** Path works. */
+    val ok: Boolean? = null,
+    /** Detail. */
+    val detail: String? = null,
+)
+
+/** Response of `POST /certs/dns-check/run`. */
+@Serializable
+public data class DnsCheckRun(
+    /** Tested paths. */
+    val paths: List<DnsCheckPath> = emptyList(),
+    /** Direct path works. */
+    @SerialName("direct_ok") val directOk: Boolean? = null,
+    /** Public path works. */
+    @SerialName("public_ok") val publicOk: Boolean? = null,
+    /** Overall result. */
+    val ok: Boolean? = null,
+)

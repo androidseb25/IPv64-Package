@@ -32,6 +32,10 @@ import de.sr.ipv64.model.Hc2SendMessageRequest
 import de.sr.ipv64.model.Hc2SendMessageResult
 import de.sr.ipv64.model.Hc2SettingsUpdate
 import de.sr.ipv64.model.Hc2Stats
+import de.sr.ipv64.model.Hc2StatusNotice
+import de.sr.ipv64.model.Hc2StatusNoticeInput
+import de.sr.ipv64.model.Hc2StatusPage
+import de.sr.ipv64.model.Hc2StatusPageInput
 import de.sr.ipv64.model.Hc2StatsRange
 import de.sr.ipv64.model.Hc2Testrun
 import de.sr.ipv64.model.Hc2VerifyChannelRequest
@@ -96,6 +100,52 @@ public class Hc2Api internal constructor(private val transport: HttpTransport) {
     /** Channel types with their configuration fields. `GET /hc2/channel-types` */
     public suspend fun channelTypes(): List<Hc2ChannelType> =
         transport.list(Method.GET, ApiPath("hc2", "channel-types"))
+
+    /** Lists status pages. `GET /hc2/status-pages` */
+    public suspend fun statusPages(): List<Hc2StatusPage> =
+        transport.list(Method.GET, ApiPath("hc2", "status-pages"))
+
+    /** Creates a status page; [Hc2StatusPageInput.title] is required. `POST /hc2/status-pages` */
+    public suspend fun createStatusPage(request: Hc2StatusPageInput): Hc2StatusPage =
+        transport.data(Method.POST, ApiPath("hc2", "status-pages"), body = transport.body(request))
+
+    /** Returns a status page including its groups. `GET /hc2/status-pages/{id}` */
+    public suspend fun statusPage(id: Long): Hc2StatusPage =
+        transport.data(Method.GET, ApiPath("hc2", "status-pages", id.toString()))
+
+    /** Changes a status page; only set properties are changed, groups replace all groups. `PATCH /hc2/status-pages/{id}` */
+    public suspend fun updateStatusPage(id: Long, request: Hc2StatusPageInput): Hc2StatusPage =
+        transport.data(Method.PATCH, ApiPath("hc2", "status-pages", id.toString()), body = transport.body(request))
+
+    /** Deletes a status page with its notices; the address becomes free. `DELETE /hc2/status-pages/{id}` */
+    public suspend fun deleteStatusPage(id: Long) {
+        transport.unit(Method.DELETE, ApiPath("hc2", "status-pages", id.toString()))
+    }
+
+    /** Lists the notices of a status page. `GET /hc2/status-pages/{id}/notices` */
+    public suspend fun statusNotices(id: Long): List<Hc2StatusNotice> =
+        transport.list(Method.GET, ApiPath("hc2", "status-pages", id.toString(), "notices"))
+
+    /** Creates a notice; [Hc2StatusNoticeInput.title] is required. `POST /hc2/status-pages/{id}/notices` */
+    public suspend fun createStatusNotice(id: Long, request: Hc2StatusNoticeInput): Hc2StatusNotice =
+        transport.data(
+            Method.POST,
+            ApiPath("hc2", "status-pages", id.toString(), "notices"),
+            body = transport.body(request),
+        )
+
+    /** Changes a notice; only set properties are changed. `PATCH /hc2/status-pages/{id}/notices/{nid}` */
+    public suspend fun updateStatusNotice(id: Long, nid: Long, request: Hc2StatusNoticeInput): Hc2StatusNotice =
+        transport.data(
+            Method.PATCH,
+            ApiPath("hc2", "status-pages", id.toString(), "notices", nid.toString()),
+            body = transport.body(request),
+        )
+
+    /** Deletes a notice. `DELETE /hc2/status-pages/{id}/notices/{nid}` */
+    public suspend fun deleteStatusNotice(id: Long, nid: Long) {
+        transport.unit(Method.DELETE, ApiPath("hc2", "status-pages", id.toString(), "notices", nid.toString()))
+    }
 }
 
 /** Sub API of [Hc2Api] for checks. */

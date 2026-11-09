@@ -164,6 +164,16 @@ public enum class LogLevel(override val value: String) : ApiValue {
     @SerialName("error") ERROR("error"),
 }
 
+/** API log: a log line per request to `/api/`. */
+@Serializable
+public enum class ApiLogMode(override val value: String) : ApiValue {
+    @SerialName("off") OFF("off"),
+    /** Only requests with an API key. */
+    @SerialName("keys") KEYS("keys"),
+    /** Also the web interface. */
+    @SerialName("all") ALL("all"),
+}
+
 /** Response of `GET /logging` and `PUT /logging`. */
 @Serializable
 public data class LoggingConfig(
@@ -173,6 +183,8 @@ public data class LoggingConfig(
     val modules: Map<String, String> = emptyMap(),
     /** Known modules (only in `GET /logging`). */
     @SerialName("known_modules") val knownModules: List<String> = emptyList(),
+    /** API log mode. */
+    @SerialName("api_log") val apiLog: ApiLogMode? = null,
 )
 
 /** Body of `PUT /logging`. */
@@ -184,6 +196,8 @@ public data class UpdateLoggingRequest(
     @SerialName("reset_minutes") val resetMinutes: Int? = null,
     /** Log level per module (module name to level). */
     val modules: Map<String, String>? = null,
+    /** Switch the API log (missing = unchanged; persists across restarts). */
+    @SerialName("api_log") val apiLog: ApiLogMode? = null,
 )
 
 /** Response of `GET /retention` and `PUT /retention`. */

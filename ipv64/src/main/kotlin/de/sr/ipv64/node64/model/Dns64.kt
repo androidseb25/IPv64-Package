@@ -159,6 +159,14 @@ public data class DNS64Settings(
     @SerialName("cert_id") val certId: Int? = null,
     /** Answer `use-application-dns.net` with NXDOMAIN (default on). */
     @SerialName("firefox_canary") val firefoxCanary: Boolean? = null,
+    /** Allow lists from the network (domains no blocklist may block; apply to all devices and groups). */
+    @SerialName("allow_lists") val allowLists: List<DNS64List> = emptyList(),
+    /** mDNS bridge: resolve `.local` and device names via mDNS (per node, default off). */
+    val mdns: Boolean? = null,
+    /** Own entries from Docker labels `node64.dns.name` / `node64.dns.ip` (this node only, default off). */
+    val docker: Boolean? = null,
+    /** Addresses for Docker entries without label `node64.dns.ip` (IPv4/IPv6, comma separated); empty = LAN address of the node. */
+    @SerialName("docker_ip") val dockerIp: String? = null,
 )
 
 /**
@@ -194,6 +202,10 @@ public data class DNS64SettingsRequest(
     @SerialName("upstream_count") val upstreamCount: Int? = null,
     @SerialName("cert_id") val certId: Int? = null,
     @SerialName("firefox_canary") val firefoxCanary: Boolean? = null,
+    @SerialName("allow_lists") val allowLists: List<DNS64List>? = null,
+    val mdns: Boolean? = null,
+    val docker: Boolean? = null,
+    @SerialName("docker_ip") val dockerIp: String? = null,
 )
 
 /** Custom DNS record. */
@@ -317,6 +329,8 @@ public data class DNS64UpstreamStats(
     @SerialName("lastErrorAt") val lastErrorAt: IsoInstant? = null,
     /** `fastest`: currently among the servers asked first. */
     val active: Boolean? = null,
+    /** `ordered`: skipped (asked last) until then after 3 consecutive errors; missing = not paused. */
+    @SerialName("pausedUntil") val pausedUntil: IsoInstant? = null,
 )
 
 /** Blocking state (pause). */
@@ -396,6 +410,23 @@ public data class DNS64Upstreams(
     @SerialName("localDNS") val localDns: String? = null,
     @SerialName("localSource") val localSource: String? = null,
     val count: Int? = null,
+    /** State of the mDNS bridge. */
+    val mdns: DNS64MdnsStatus? = null,
+    /** Domain suffixes learned from the router (only with mDNS bridge). */
+    @SerialName("localDomains") val localDomains: List<String> = emptyList(),
+)
+
+/** State of the mDNS bridge. */
+@Serializable
+public data class DNS64MdnsStatus(
+    val on: Boolean? = null,
+    /** Multicast queries since start. */
+    val queries: Long? = null,
+    /** Queries that were answered. */
+    val answered: Long? = null,
+    /** Devices at the last check, -1 = not checked yet. */
+    val responders: Int? = null,
+    @SerialName("probed_at") val probedAt: IsoInstant? = null,
 )
 
 /** Response of `POST /dns64/cache/flush`. */
@@ -440,6 +471,21 @@ public data class DNS64AddListRequest(
     val name: String? = null,
 )
 
+/** Request body of `POST /dns64/lists` with several lists at once. */
+@Serializable
+public data class DNS64AddListsRequest(
+    /** One URL per entry, optionally `Name | URL`. */
+    val urls: List<String>,
+)
+
+/** Result per URL of `POST /dns64/lists` with `urls`. */
+@Serializable
+public data class DNS64AddListsResult(
+    val added: List<String> = emptyList(),
+    val duplicates: List<String> = emptyList(),
+    val invalid: List<String> = emptyList(),
+)
+
 /** Request body of `POST /dns64/upstreams`. */
 @Serializable
 public data class DNS64AddUpstreamRequest(
@@ -464,4 +510,77 @@ public data class DNS64AllowlistImportRequest(val domains: List<String>)
 public data class DNS64PauseRequest(
     /** 1-1440; 0 = until resumed. */
     val minutes: Int,
+)
+
+/** Denied domain. */
+@Serializable
+public data class DNS64DeniedDomain(
+    val domain: String? = null,
+    @SerialName("addedAt") val addedAt: IsoInstant? = null,
+)
+
+/** Request body of `POST /dns64/denylist`. */
+@Serializable
+public data class DNS64DenyDomainRequest(val domain: String)
+
+/** Request body of `PUT /dns64/denylist`. */
+@Serializable
+public data class DNS64DenylistReplaceRequest(val domains: List<String>)
+
+/** Response of `PUT /dns64/denylist`. */
+@Serializable
+public data class DNS64DenylistReplaceResult(
+    val total: Int? = null,
+    val added: Int? = null,
+    val removed: Int? = null,
+    val duplicates: Int? = null,
+    val invalid: List<String> = emptyList(),
+)
+
+
+/** Container of the Docker integration. */
+@Serializable
+public data class DNS64DockerContainer(
+    val container: String? = null,
+    val state: String? = null,
+    val names: List<String> = emptyList(),
+    val addrs: List<String> = emptyList(),
+    val problem: String? = null,
+    @SerialName("problem_name") val problemName: String? = null,
+)
+
+/** Response of `GET /dns64/docker`. */
+@Serializable
+public data class DNS64DockerState(
+    val enabled: Boolean? = null,
+    val connected: Boolean? = null,
+    val host: String? = null,
+    val error: String? = null,
+    val synced: String? = null,
+    val containers: List<DNS64DockerContainer> = emptyList(),
+)
+
+/** Known service of `GET /dns64/services`. */
+@Serializable
+public data class DNS64Service(
+    val key: String? = null,
+    val id: String? = null,
+    val name: String? = null,
+    val group: String? = null,
+    val domains: List<String> = emptyList(),
+)
+
+/** Response of `GET /dns64/services`. */
+@Serializable
+public data class DNS64Services(
+    val categories: List<String> = emptyList(),
+    val groups: List<String> = emptyList(),
+    val services: List<DNS64Service> = emptyList(),
+)
+
+/** Response of `GET /dns64/top/list`. */
+@Serializable
+public data class DNS64TopListPage(
+    val items: List<DNS64TopItem> = emptyList(),
+    val total: Int? = null,
 )

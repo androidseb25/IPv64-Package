@@ -114,3 +114,16 @@ public data class DNS64ZoneRequest(
     val minimum: Int? = null,
     val hostmaster: String? = null,
 )
+
+/** TSIG data of a zone. [tsigSecret] is redacted in [toString]. */
+@Serializable
+public data class DNS64ZoneTsig(
+    val zone: String? = null,
+    val dynamic: Boolean? = null,
+    val algorithm: String? = null,
+    @SerialName("tsig_name") val tsigName: String? = null,
+    @SerialName("tsig_secret") val tsigSecret: String? = null,
+) {
+    override fun toString(): String =
+        "DNS64ZoneTsig(zone=$zone, dynamic=$dynamic, algorithm=$algorithm, tsigName=$tsigName, tsigSecret=<redacted>)"
+}

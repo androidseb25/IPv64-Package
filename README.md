@@ -4,10 +4,10 @@ Das SDK enthält zwei Clients mit gemeinsamem Kern:
 
 - **`IPv64`** – die Cloud-API [IPv64.net API v2](https://ipv64.net/api/v2/docs) (DynDNS, DNS,
   Healthchecks, DNS-Failover, CDN, Cloud Router, DNS64, Healthchecks 2.0, Nodes, Honeypot64, Threat).
-  Bildet alle 192 Operationen der [OpenAPI-Spezifikation](https://ipv64.net/api/v2/openapi.json) ab.
+  Bildet alle 201 Operationen der [OpenAPI-Spezifikation](https://ipv64.net/api/v2/openapi.json) ab.
 - **`Node64`** – die lokale API einer Node64-Node im eigenen Netz (Healthchecks, Status-Seiten,
-  Docker/Proxmox, DNS64, PROXY64, Zertifikate, DynDNS, Cluster, Honeypot64). Bildet alle
-  290 Operationen der Node64-Spezifikation (v1.2.0) ab. Siehe [Node64](#node64).
+  Docker/Proxmox, DNS64, PROXY64, Zertifikate, DynDNS, Cluster, Honeypot64, Sonar64, MCP, Updates, Benutzer). Bildet alle
+  361 Operationen der Node64-Spezifikation (v1.2.0) ab. Siehe [Node64](#node64).
 
 - 100 % Kotlin, `suspend`-API (Coroutines). Alle Aufrufe sind main-safe.
 - OkHttp 5 + kotlinx.serialization, keine Reflection.
@@ -38,7 +38,7 @@ dependencyResolutionManagement {
 
 ```toml
 [versions]
-ipv64 = "1.0.0"
+ipv64 = "1.1.0"
 
 [libraries]
 ipv64 = { module = "com.github.androidseb25:IPv64-Package", version.ref = "ipv64" }
@@ -54,7 +54,7 @@ dependencies {
 oder direkt:
 
 ```kotlin
-implementation("com.github.androidseb25:IPv64-Package:1.0.0")
+implementation("com.github.androidseb25:IPv64-Package:1.1.0")
 ```
 
 **3. Voraussetzungen der App:** `compileSdk = 37` (verlangt von OkHttp 5.5), `minSdk` ≥ 26,
@@ -62,7 +62,7 @@ Java 17. Die `INTERNET`-Berechtigung bringt das Package selbst mit. OkHttp, Coro
 kotlinx.serialization kommen transitiv mit.
 
 Alternativ als lokales Modul (`include(":ipv64")` + `implementation(project(":ipv64"))`) oder per
-`./gradlew :ipv64:publishToMavenLocal` als `de.sr:ipv64:1.0.0` aus `mavenLocal()`.
+`./gradlew :ipv64:publishToMavenLocal` als `de.sr:ipv64:1.1.0` aus `mavenLocal()`.
 
 ## Schnellstart
 

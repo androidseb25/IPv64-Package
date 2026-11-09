@@ -1,5 +1,6 @@
 package de.sr.ipv64.node64.api
 
+import de.sr.ipv64.node64.model.ApiLogMode
 import de.sr.ipv64.node64.model.BackupRequest
 import de.sr.ipv64.node64.model.DashboardLayout
 import de.sr.ipv64.node64.model.DashboardTile
@@ -382,6 +383,16 @@ class NodeApiTest : Node64ApiTestBaseA() {
         assertEquals("/api/logging", request.target)
         request.assertJsonBody("""{"level":"debug","reset_minutes":30}""")
         assertEquals(LogLevel.DEBUG, config.level)
+    }
+
+    @Test
+    fun `api_log is decoded and sent`() = test {
+        enqueueJson("""{"level":"info","api_log":"keys"}""")
+
+        val config = node().node.updateLogging(UpdateLoggingRequest(apiLog = ApiLogMode.ALL))
+
+        takeRequest().assertJsonBody("""{"api_log":"all"}""")
+        assertEquals(ApiLogMode.KEYS, config.apiLog)
     }
 
     @Test

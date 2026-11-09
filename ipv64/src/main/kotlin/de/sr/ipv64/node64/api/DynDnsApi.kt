@@ -16,6 +16,7 @@ import de.sr.ipv64.node64.model.DynDnsHistoryType
 import de.sr.ipv64.node64.model.DynDnsUpdateNowResult
 import de.sr.ipv64.node64.model.UpdateDynDnsSettingsRequest
 import de.sr.ipv64.node64.model.UpdateDynDnsTargetRequest
+import de.sr.ipv64.node64.model.DynDnsClusterPreference
 import kotlinx.serialization.json.JsonElement
 
 /** Tag *DynDNS*: DynDNS updater of the node. */
@@ -112,4 +113,12 @@ public class DynDnsApi internal constructor(private val transport: HttpTransport
     /** Fetches the record token again from ipv64 (lifts a pause because of badauth). `POST /dyndns/targets/{id}/token` */
     public suspend fun refreshTargetToken(id: Long): DynDNSTarget =
         transport.json(Method.POST, ApiPath("dyndns", "targets", id.toString(), "token"))
+
+    /** Chooses the preferred node of the cluster. `PUT /dyndns/cluster` */
+    public suspend fun setClusterPreference(preferredNode: String): DynDnsClusterPreference =
+        transport.json(
+            Method.PUT,
+            ApiPath("dyndns", "cluster"),
+            body = transport.body(DynDnsClusterPreference(preferredNode)),
+        )
 }

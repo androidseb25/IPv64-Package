@@ -11,12 +11,13 @@ import kotlinx.serialization.json.JsonObject
 @Serializable
 public enum class PVESystemKind(override val value: String) : ApiValue {
     @SerialName("pve") PVE("pve"),
+    @SerialName("pbs") PBS("pbs"),
     @SerialName("docker") DOCKER("docker"),
 }
 
 /** Filter of `GET /healthchecks/proxmox/systems`. */
 public enum class PVESystemKindFilter(override val value: String) : ApiValue {
-    PVE("pve"), DOCKER("docker"), ALL("all"),
+    PVE("pve"), PBS("pbs"), DOCKER("docker"), ALL("all"),
 }
 
 /** State of a monitored system. */
@@ -82,7 +83,7 @@ public enum class SeriesRange(override val value: String) : ApiValue {
 public data class PVESystem(
     /** ID. */
     val id: Long? = null,
-    /** `pve` or `docker`. */
+    /** `pve`, `pbs` (Proxmox Backup Server) or `docker`. */
     val kind: PVESystemKind? = null,
     /** Name. */
     val name: String? = null,
@@ -128,6 +129,46 @@ public data class PVESystem(
     @SerialName("guests_running") val guestsRunning: Int? = null,
     /** Guests in a bad state. */
     @SerialName("guests_bad") val guestsBad: Int? = null,
+    /** Proxmox Backup Server only: datastores, services, update, failed tasks (free-form). */
+    val pbs: JsonObject? = null,
+    /** Proxmox VE only: storages of the last poll. */
+    val storages: List<PVEStorage> = emptyList(),
+    /** Docker over SSH/TLS only: which credentials are stored (never the private keys). */
+    val credentials: DockerCredentials? = null,
+)
+
+/** A storage of a Proxmox VE system. */
+@Serializable
+public data class PVEStorage(
+    /** Storage name. */
+    val storage: String? = null,
+    /** Node. */
+    val node: String? = null,
+    /** Shared storage. */
+    val shared: Boolean? = null,
+    /** Storage type. */
+    val type: String? = null,
+    /** Content types. */
+    val content: String? = null,
+    /** Status. */
+    val status: String? = null,
+    /** Total bytes. */
+    val total: Long? = null,
+    /** Used bytes. */
+    val used: Long? = null,
+)
+
+/** Which credentials of a Docker host (SSH/TLS) are stored. */
+@Serializable
+public data class DockerCredentials(
+    /** Private key (SSH or TLS client) stored. */
+    val key: Boolean? = null,
+    /** TLS client certificate stored. */
+    val cert: Boolean? = null,
+    /** CA of the Docker daemon stored. */
+    val ca: Boolean? = null,
+    /** SSH: line for `~/.ssh/authorized_keys` on the Docker host. */
+    @SerialName("public_key") val publicKey: String? = null,
 )
 
 /**
@@ -150,10 +191,21 @@ public data class PVESystemInput(
     val interval: Int? = null,
     /** Monitoring enabled (default true). */
     val enabled: Boolean? = null,
+    /** Only on create/test (Proxmox): `pve` (default) or `pbs`. */
+    val kind: PVESystemKind? = null,
+    /** Docker only: private SSH or TLS client key (PEM); empty = unchanged. Redacted in [toString]. */
+    @SerialName("private_key") val privateKey: String? = null,
+    /** Docker https only: TLS client certificate (PEM); `""` removes certificate and key. */
+    val cert: String? = null,
+    /** Docker https only: CA of the Docker daemon (PEM); `""` removes it. */
+    val ca: String? = null,
+    /** Docker ssh only: generate and store a new ed25519 key (public part in `credentials.public_key`). */
+    @SerialName("generate_key") val generateKey: Boolean? = null,
 ) {
     override fun toString(): String =
         "PVESystemInput(name=$name, addresses=$addresses, tokenId=$tokenId, secret=<redacted>, " +
-            "pinSha256=$pinSha256, interval=$interval, enabled=$enabled)"
+            "pinSha256=$pinSha256, interval=$interval, enabled=$enabled, kind=$kind, privateKey=<redacted>, cert=$cert, ca=$ca, " +
+            "generateKey=$generateKey)"
 }
 
 /**
@@ -178,10 +230,21 @@ public data class PVEProbeRequest(
     val interval: Int? = null,
     /** Monitoring enabled. */
     val enabled: Boolean? = null,
+    /** Only on create/test (Proxmox): `pve` (default) or `pbs`. */
+    val kind: PVESystemKind? = null,
+    /** Docker only: private SSH or TLS client key (PEM); empty = unchanged. Redacted in [toString]. */
+    @SerialName("private_key") val privateKey: String? = null,
+    /** Docker https only: TLS client certificate (PEM); `""` removes certificate and key. */
+    val cert: String? = null,
+    /** Docker https only: CA of the Docker daemon (PEM); `""` removes it. */
+    val ca: String? = null,
+    /** Docker ssh only: generate and store a new ed25519 key (public part in `credentials.public_key`). */
+    @SerialName("generate_key") val generateKey: Boolean? = null,
 ) {
     override fun toString(): String =
         "PVEProbeRequest(systemId=$systemId, name=$name, addresses=$addresses, tokenId=$tokenId, " +
-            "secret=<redacted>, pinSha256=$pinSha256, interval=$interval, enabled=$enabled)"
+            "secret=<redacted>, pinSha256=$pinSha256, interval=$interval, enabled=$enabled, kind=$kind, " +
+            "privateKey=<redacted>, cert=$cert, ca=$ca, generateKey=$generateKey)"
 }
 
 /** Result of testing the connection to a Proxmox system. */
@@ -415,6 +478,8 @@ public data class PVESettingsInput(
     @SerialName("expect_running") val expectRunning: JsonElement? = null,
     /** Rules. */
     val rules: PVERuleSet? = null,
+    /** Only with [asCheck] true: name of the new check (empty = default); an existing check keeps its name. */
+    val name: String? = null,
 )
 
 /** Response of the `GET …/settings` endpoints. */
@@ -437,4 +502,24 @@ public data class PVESettingsResult(
     val settings: PVESettings? = null,
     /** Effective rules (channels = effective channel IDs, empty = default channels). */
     val effective: JsonObject? = null,
+)
+
+/** Scope of "add all as check". */
+@Serializable
+public enum class AsCheckAllScope(override val value: String) : ApiValue {
+    @SerialName("guests") GUESTS("guests"),
+    @SerialName("nodes") NODES("nodes"),
+}
+
+/** Response of `POST /healthchecks/{proxmox|docker}/systems/{id}/ascheck-all`. */
+@Serializable
+public data class AsCheckAllResult(
+    /** Newly created checks. */
+    val added: Int? = null,
+    /** Failed checks. */
+    val failed: Int? = null,
+    /** First error (only if `failed` > 0). */
+    val error: String? = null,
+    /** i18n key of the first error. */
+    val key: String? = null,
 )

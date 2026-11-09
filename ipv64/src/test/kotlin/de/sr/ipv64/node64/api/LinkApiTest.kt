@@ -202,4 +202,44 @@ class LinkApiTest : Node64ApiTestBaseA() {
         assertEquals("DELETE", request.method)
         assertEquals("/api/ipv64/key", request.target)
     }
+
+    @Test
+    fun `start posts and decodes code`() = test {
+        enqueueJson("""{"code":"ABC-123","expires_at":"2026-10-28T10:10:00Z","hub":"hub.ipv64.net"}""", code = 201)
+
+        val s = node().link.start()
+
+        val request = takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/link/start", request.target)
+        assertEquals("ABC-123", s.code)
+        assertEquals(Instant.parse("2026-10-28T10:10:00Z"), s.expiresAt)
+        assertEquals("hub.ipv64.net", s.hub)
+        assertFalse(s.toString().contains("ABC-123"))
+    }
+
+    @Test
+    fun `status gets and decodes`() = test {
+        enqueueJson("""{"linked":false,"connected":false,"code":"ABC-123","hub":"h","error":"e","requesting":true}""")
+
+        val s = node().link.status()
+
+        val request = takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/api/link/status", request.target)
+        assertEquals(true, s.requesting)
+        assertEquals("e", s.error)
+        assertFalse(s.toString().contains("ABC-123"))
+    }
+
+    @Test
+    fun `cancel posts`() = test {
+        enqueueNoContent()
+
+        node().link.cancel()
+
+        val request = takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/link/cancel", request.target)
+    }
 }

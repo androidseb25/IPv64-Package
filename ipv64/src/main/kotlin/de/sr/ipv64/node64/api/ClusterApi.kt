@@ -11,6 +11,10 @@ import de.sr.ipv64.node64.model.ClusterSyncModules
 import de.sr.ipv64.node64.model.JoinGroupRequest
 import de.sr.ipv64.node64.model.SetGroupSyncRequest
 import de.sr.ipv64.node64.model.UpdateGroupMemberRequest
+import de.sr.ipv64.node64.model.ChooseAcmeAccountRequest
+import de.sr.ipv64.node64.model.ChooseAcmeAccountResult
+import de.sr.ipv64.node64.model.ChooseUserRequest
+import de.sr.ipv64.node64.model.ChooseUserResult
 
 /** Tag *Cluster*: group of several nodes. */
 public class ClusterApi internal constructor(private val transport: HttpTransport) {
@@ -62,4 +66,12 @@ public class ClusterApi internal constructor(private val transport: HttpTranspor
      */
     public suspend fun setSync(request: SetGroupSyncRequest): ClusterSyncModules =
         transport.json(Method.PUT, ApiPath("group", "sync"), body = transport.body(request))
+
+    /** Chooses the ACME account cluster-wide (see `acme_accounts` of [group]). `POST /group/acme` */
+    public suspend fun chooseAcmeAccount(thumbprint: String): ChooseAcmeAccountResult =
+        transport.json(Method.POST, ApiPath("group", "acme"), body = transport.body(ChooseAcmeAccountRequest(thumbprint)))
+
+    /** Chooses a same-named user cluster-wide (see `user_conflicts` of [group]). `POST /group/users` */
+    public suspend fun chooseUser(uid: String): ChooseUserResult =
+        transport.json(Method.POST, ApiPath("group", "users"), body = transport.body(ChooseUserRequest(uid)))
 }

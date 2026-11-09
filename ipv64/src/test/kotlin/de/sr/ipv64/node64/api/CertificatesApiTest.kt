@@ -173,6 +173,13 @@ class CertificatesApiTest : Node64ApiTestBaseB() {
     }
 
     @Test
+    fun `create sends source auto`() = test<Unit> {
+        enqueueJson("""{"id":9}""")
+        certs.create(CreateCertificateRequest(listOf("a.example.com"), CertificateSource.AUTO))
+        assertEquals("auto", expectRequest("POST", "/api/certs").jsonBody().jsonObject["source"]?.jsonPrimitive?.content)
+    }
+
+    @Test
     fun `domains returns string list`() = test<Unit> {
         enqueueJson("""["example.ipv64.net","foo.ipv64.net"]""")
         assertEquals(listOf("example.ipv64.net", "foo.ipv64.net"), certs.domains())
@@ -535,5 +542,32 @@ class CertificatesApiTest : Node64ApiTestBaseB() {
         enqueueNoContent()
         certs.deleteAcmeCa(6)
         expectRequest("DELETE", "/api/acme-cas/6")
+    }
+
+    @Test
+    fun `dnsCheck gets resolvers`() = test<Unit> {
+        enqueueJson("""{"resolvers":["1.1.1.1","9.9.9.9"]}""")
+        assertEquals(listOf("1.1.1.1", "9.9.9.9"), certs.dnsCheck().resolvers)
+        expectRequest("GET", "/api/certs/dns-check")
+    }
+
+    @Test
+    fun `updateDnsCheck sends resolvers`() = test<Unit> {
+        enqueueJson("""{"resolvers":["1.1.1.1"]}""")
+        val r = certs.updateDnsCheck(DnsCheckResolvers(listOf("1.1.1.1")))
+        assertEquals(listOf("1.1.1.1"), r.resolvers)
+        assertEquals("""{"resolvers":["1.1.1.1"]}""", expectRequest("PUT", "/api/certs/dns-check").bodyText())
+    }
+
+    @Test
+    fun `runDnsCheck decodes paths`() = test<Unit> {
+        enqueueJson("""{"paths":[{"name":"direct","direct":true,"ok":true,"detail":"d"}],"direct_ok":true,"public_ok":false,"ok":false}""")
+        val r = certs.runDnsCheck()
+        assertEquals("direct", r.paths.single().name)
+        assertEquals(true, r.paths.single().direct)
+        assertEquals(true, r.directOk)
+        assertEquals(false, r.publicOk)
+        assertEquals(false, r.ok)
+        expectRequest("POST", "/api/certs/dns-check/run")
     }
 }

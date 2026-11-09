@@ -17,6 +17,8 @@ import de.sr.ipv64.node64.model.PVESystem
 import de.sr.ipv64.node64.model.PVESystemInput
 import de.sr.ipv64.node64.model.PVESystemKindFilter
 import de.sr.ipv64.node64.model.SeriesRange
+import de.sr.ipv64.node64.model.AsCheckAllResult
+import de.sr.ipv64.node64.model.AsCheckAllScope
 
 /** Tag *Healthchecks*: Proxmox VE monitoring (`/healthchecks/proxmox`). */
 public class ProxmoxApi internal constructor(private val transport: HttpTransport) {
@@ -83,4 +85,12 @@ public class ProxmoxApi internal constructor(private val transport: HttpTranspor
             query("key" to key),
         )
     }
+
+    /** Adds all guests (default) or nodes as checks. `POST /healthchecks/proxmox/systems/{id}/ascheck-all` */
+    public suspend fun asCheckAll(id: Long, scope: AsCheckAllScope? = null): AsCheckAllResult =
+        transport.json(
+            Method.POST,
+            ApiPath("healthchecks", "proxmox", "systems", id.toString(), "ascheck-all"),
+            query("scope" to scope),
+        )
 }

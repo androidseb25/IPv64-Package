@@ -93,4 +93,24 @@ class Dns64ZonesApiTest : Node64ApiTestBaseB() {
         assertEquals("text/plain", r.headers["Accept"])
         assertEquals(zone, text)
     }
+
+    private val tsigJson = """{"zone":"home.lan","dynamic":true,"algorithm":"hmac-sha256","tsig_name":"key1","tsig_secret":"s3cr3t"}"""
+
+    @Test
+    fun `tsig gets key data and redacts secret`() = test<Unit> {
+        enqueueJson(tsigJson)
+        val t = zones.tsig(2)
+        expectRequest("GET", "/api/dns64/zones/2/tsig")
+        assertEquals("key1", t.tsigName)
+        assertEquals("s3cr3t", t.tsigSecret)
+        assertEquals("hmac-sha256", t.algorithm)
+        assertFalse(t.toString().contains("s3cr3t"))
+    }
+
+    @Test
+    fun `rotateTsig posts`() = test<Unit> {
+        enqueueJson(tsigJson)
+        assertEquals(true, zones.rotateTsig(2).dynamic)
+        expectRequest("POST", "/api/dns64/zones/2/tsig")
+    }
 }

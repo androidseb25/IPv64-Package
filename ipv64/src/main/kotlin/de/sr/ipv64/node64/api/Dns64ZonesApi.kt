@@ -37,6 +37,14 @@ public class Dns64ZonesApi internal constructor(private val transport: HttpTrans
         transport.unit(Method.POST, ApiPath("dns64", "zones", id.toString(), "disable"))
     }
 
+    /** TSIG key data of the zone. `GET /dns64/zones/{id}/tsig` */
+    public suspend fun tsig(id: Long): DNS64ZoneTsig =
+        transport.json(Method.GET, ApiPath("dns64", "zones", id.toString(), "tsig"))
+
+    /** Generates a new TSIG key for the zone. `POST /dns64/zones/{id}/tsig` */
+    public suspend fun rotateTsig(id: Long): DNS64ZoneTsig =
+        transport.json(Method.POST, ApiPath("dns64", "zones", id.toString(), "tsig"))
+
     /** Zone file of the zone in BIND format. `GET /dns64/zones/{id}/zonefile` */
     public suspend fun zonefile(id: Long): String =
         transport.text(Method.GET, ApiPath("dns64", "zones", id.toString(), "zonefile"), headers = mapOf("Accept" to "text/plain"))

@@ -69,6 +69,8 @@ public data class EdgeConfig(
     @SerialName("default_url") val defaultUrl: String? = null,
     /** HTML of the default answer. */
     @SerialName("default_html") val defaultHtml: String? = null,
+    /** Addresses/networks of upstream proxies allowed to send a PROXY header (v1/v2) on ports 80/443, space or comma separated, empty = off. */
+    @SerialName("proxy_protocol") val proxyProtocol: String? = null,
 )
 
 /** Body of `PUT /edge`. Missing fields stay unchanged. */
@@ -90,6 +92,8 @@ public data class EdgeConfigRequest(
     @SerialName("default_url") val defaultUrl: String? = null,
     /** HTML of the default answer. */
     @SerialName("default_html") val defaultHtml: String? = null,
+    /** Addresses/networks of upstream proxies allowed to send a PROXY header (v1/v2) on ports 80/443, space or comma separated, empty = off. */
+    @SerialName("proxy_protocol") val proxyProtocol: String? = null,
 )
 
 /** A listener of the shared entry. */

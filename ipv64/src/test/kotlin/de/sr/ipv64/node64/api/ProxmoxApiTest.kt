@@ -1,5 +1,6 @@
 package de.sr.ipv64.node64.api
 
+import de.sr.ipv64.node64.model.AsCheckAllScope
 import de.sr.ipv64.node64.model.PVEProbeRequest
 import de.sr.ipv64.node64.model.PVEResourceState
 import de.sr.ipv64.node64.model.PVEResourceType
@@ -291,5 +292,37 @@ class ProxmoxApiTest : Node64ApiTestBaseA() {
         assertEquals("DELETE", first.method)
         assertEquals("/api/healthchecks/proxmox/systems/1/settings?key=qemu%2F100", first.target)
         assertEquals("/api/healthchecks/proxmox/systems/1/settings", takeRequest().target)
+    }
+
+    @Test
+    fun `pbs system decodes new fields and input sends kind and client key fields`() = test {
+        enqueueJson(
+            """{"id":9,"kind":"pbs","pbs":{"update":true},"storages":[{"storage":"local","node":"pve1","shared":false,
+            "type":"dir","content":"iso","status":"available","total":100,"used":40}],
+            "credentials":{"key":true,"cert":false,"ca":false,"public_key":"ssh-ed25519 AAAA"}}""",
+            code = 201,
+        )
+
+        val s = node().proxmox.createSystem(PVESystemInput(kind = PVESystemKind.PBS, generateKey = true, privateKey = "PRIV"))
+
+        assertEquals(PVESystemKind.PBS, s.kind)
+        assertEquals(true, s.pbs?.containsKey("update"))
+        assertEquals("local", s.storages.single().storage)
+        assertEquals(40L, s.storages.single().used)
+        assertEquals("ssh-ed25519 AAAA", s.credentials?.publicKey)
+        takeRequest().assertJsonBody("""{"kind":"pbs","private_key":"PRIV","generate_key":true}""")
+    }
+
+    @Test
+    fun `asCheckAll sends scope and decodes`() = test {
+        enqueueJson("""{"added":4,"failed":0}""")
+
+        val r = node().proxmox.asCheckAll(3, AsCheckAllScope.GUESTS)
+
+        val request = takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/healthchecks/proxmox/systems/3/ascheck-all?scope=guests", request.target)
+        assertEquals(4, r.added)
+        assertEquals(0, r.failed)
     }
 }

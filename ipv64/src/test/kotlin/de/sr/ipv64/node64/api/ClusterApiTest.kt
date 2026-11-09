@@ -190,4 +190,33 @@ class ClusterApiTest : Node64ApiTestBaseA() {
 
         takeRequest().assertJsonBody("""{"module":"checks","enabled":false}""")
     }
+
+    @Test
+    fun `chooseAcmeAccount posts thumbprint and decodes`() = test {
+        enqueueJson("""{"chosen":"tp1","dropped":[{"thumbprint":"tp2","node_id":"n2","email":"a@b.de"}]}""")
+
+        val r = node().cluster.chooseAcmeAccount("tp1")
+
+        val request = takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/group/acme", request.target)
+        request.assertJsonBody("""{"thumbprint":"tp1"}""")
+        assertEquals("tp1", r.chosen)
+        assertEquals("n2", r.dropped.single().nodeId)
+        assertEquals("a@b.de", r.dropped.single().email)
+    }
+
+    @Test
+    fun `chooseUser posts uid and decodes`() = test {
+        enqueueJson("""{"username":"bob","chosen":"u1","dropped":[{"uid":"u2","node_id":"n2","own":true}]}""")
+
+        val r = node().cluster.chooseUser("u1")
+
+        val request = takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/group/users", request.target)
+        request.assertJsonBody("""{"uid":"u1"}""")
+        assertEquals("bob", r.username)
+        assertEquals(true, r.dropped.single().own)
+    }
 }

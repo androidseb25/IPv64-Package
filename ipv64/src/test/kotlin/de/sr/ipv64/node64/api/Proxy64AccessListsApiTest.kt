@@ -75,4 +75,23 @@ class Proxy64AccessListsApiTest : Node64ApiTestBaseB() {
         lists.delete(2)
         expectRequest("DELETE", "/api/cdn64/access-lists/2")
     }
+
+    @Test
+    fun `create posts forward auth fields`() = test<Unit> {
+        enqueueJson(listJson)
+        lists.create(
+            CDNAccessListInput(
+                loginPage = true, auth = AccessListAuth.OAUTH2_PROXY,
+                forward = CDNAccessListForward(address = "http://a", headers = listOf("X-U"), callback = "/cb"),
+                passUser = true, addKey = "ci", removeKeys = listOf("abc"),
+            ),
+        )
+        assertEquals(
+            js(
+                """{"login_page":true,"auth":"oauth2-proxy","forward":{"address":"http://a","headers":["X-U"],"callback":"/cb"},
+                "pass_user":true,"add_key":"ci","remove_keys":["abc"]}""",
+            ),
+            expectRequest("POST", "/api/cdn64/access-lists").jsonBody(),
+        )
+    }
 }

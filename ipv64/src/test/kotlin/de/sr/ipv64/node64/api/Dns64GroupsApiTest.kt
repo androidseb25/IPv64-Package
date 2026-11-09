@@ -97,6 +97,14 @@ class Dns64GroupsApiTest : Node64ApiTestBaseB() {
     }
 
     @Test
+    fun `addMember posts tags and decodes them`() = test<Unit> {
+        enqueueJson("""{"id":41,"group_id":4,"kind":"ip","value":"10.0.0.2","tags":["kids","tv"]}""")
+        val m = groups.addMember(4, DNS64GroupMemberRequest(DNS64MemberKind.IP, "10.0.0.2", tags = listOf("kids", "tv")))
+        assertEquals(js("""{"kind":"ip","value":"10.0.0.2","tags":["kids","tv"]}"""), expectRequest("POST", "/api/dns64/groups/4/members").jsonBody())
+        assertEquals(listOf("kids", "tv"), m.tags)
+    }
+
+    @Test
     fun `addMember omits null label`() = test<Unit> {
         enqueueJson("""{"id":1}""")
         groups.addMember(4, DNS64GroupMemberRequest(DNS64MemberKind.NET, "10.0.0.0/8"))
@@ -221,5 +229,23 @@ class Dns64GroupsApiTest : Node64ApiTestBaseB() {
         enqueueNoContent()
         groups.deleteSchedule(9)
         expectRequest("DELETE", "/api/dns64/groups/schedules/9")
+    }
+
+    @Test
+    fun `updateMember patches label and tags`() = test<Unit> {
+        enqueueJson("""{"id":40,"group_id":1,"kind":"mac","value":"aa:bb","label":"TV","tags":["x"]}""")
+        val m = groups.updateMember(40, DNS64GroupMemberUpdateRequest(label = "TV", tags = listOf("x")))
+        val r = expectRequest("PATCH", "/api/dns64/groups/members/40")
+        assertEquals(js("""{"label":"TV","tags":["x"]}"""), r.jsonBody())
+        assertEquals("TV", m.label)
+        assertEquals(listOf("x"), m.tags)
+    }
+
+    @Test
+    fun `unassign posts mac`() = test<Unit> {
+        enqueueNoContent()
+        groups.unassign(mac = "aa:bb")
+        val r = expectRequest("POST", "/api/dns64/groups/unassign")
+        assertEquals(js("""{"mac":"aa:bb"}"""), r.jsonBody())
     }
 }

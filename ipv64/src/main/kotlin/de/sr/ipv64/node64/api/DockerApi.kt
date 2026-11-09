@@ -16,6 +16,10 @@ import de.sr.ipv64.node64.model.PVESystem
 import de.sr.ipv64.node64.model.PVESystemInput
 import de.sr.ipv64.node64.model.PVEResources
 import de.sr.ipv64.node64.model.SeriesRange
+import de.sr.ipv64.node64.model.AsCheckAllResult
+import de.sr.ipv64.node64.model.AsCheckAllScope
+import de.sr.ipv64.node64.model.DockerProbe
+import de.sr.ipv64.node64.model.PVEProbeRequest
 
 /** Tag *Healthchecks*: Docker monitoring (`/healthchecks/docker`). Docker hosts are modelled as [PVESystem]. */
 public class DockerApi internal constructor(private val transport: HttpTransport) {
@@ -86,4 +90,20 @@ public class DockerApi internal constructor(private val transport: HttpTransport
             query("key" to key),
         )
     }
+
+    /** Sets up or enables the local Docker host. `POST /healthchecks/docker/enable` */
+    public suspend fun enable(): PVESystem =
+        transport.json(Method.POST, ApiPath("healthchecks", "docker", "enable"))
+
+    /** Tests a Docker host; [request] may carry `systemId` to use stored credentials. `POST /healthchecks/docker/probe` */
+    public suspend fun probe(request: PVEProbeRequest): DockerProbe =
+        transport.json(Method.POST, ApiPath("healthchecks", "docker", "probe"), body = transport.body(request))
+
+    /** Adds all containers (default) or nodes as checks. `POST /healthchecks/docker/systems/{id}/ascheck-all` */
+    public suspend fun asCheckAll(id: Long, scope: AsCheckAllScope? = null): AsCheckAllResult =
+        transport.json(
+            Method.POST,
+            ApiPath("healthchecks", "docker", "systems", id.toString(), "ascheck-all"),
+            query("scope" to scope),
+        )
 }

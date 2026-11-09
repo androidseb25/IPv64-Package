@@ -1,5 +1,8 @@
 package de.sr.ipv64.node64.api
 
+import de.sr.ipv64.node64.model.HoneypotCertDnsResult
+import de.sr.ipv64.node64.model.HoneypotCertRequest
+import de.sr.ipv64.node64.model.HoneypotWatchRequest
 import de.sr.ipv64.node64.model.Honeypot64Config
 import de.sr.ipv64.node64.model.Honeypot64ConfigRequest
 import de.sr.ipv64.node64.model.Honeypot64LogConfig
@@ -276,5 +279,83 @@ class HoneypotApiTest : Node64ApiTestBaseA() {
         node().honeypot.live(minutes = 60)
 
         assertEquals("/api/honeypot/live?minutes=60", takeRequest().target)
+    }
+
+    @Test
+    fun `createCert posts body and decodes result`() = test {
+        enqueueJson(
+            """{"cert_id":5,"names":["mail.decoy.ipv64.net"],"selected":true,
+            "dns":[{"name":"mail","type":"A","result":"created"},{"name":"vpn","type":"A","result":"error","error":"x"}],"dns_error":"e"}""",
+            code = 202,
+        )
+
+        val r = node().honeypot.createCert(HoneypotCertRequest("decoy.ipv64.net", listOf("mail"), listOf("203.0.113.10")))
+
+        val request = takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/honeypot/cert", request.target)
+        request.assertJsonBody("""{"domain":"decoy.ipv64.net","names":["mail"],"dns_targets":["203.0.113.10"]}""")
+        assertEquals(5L, r.certId)
+        assertEquals(true, r.selected)
+        assertEquals(HoneypotCertDnsResult.CREATED, r.dns[0].result)
+        assertEquals("x", r.dns[1].error)
+        assertEquals("e", r.dnsError)
+    }
+
+    @Test
+    fun `watch decodes overview`() = test {
+        enqueueJson(
+            """{"limits":{"max":10,"min_prefix_v4":24,"min_prefix_v6":48},
+            "networks":[{"id":1,"cidr":"203.0.113.0/24","label":"Buero","verified":true,"created_at":"2026-10-01"}],
+            "dyndns":[{"ip":"1.2.3.4","domain":"a.ipv64.net"}],"full":false,"running":true,"state":{"hits":0}}""",
+        )
+
+        val w = node().honeypot.watch()
+
+        val request = takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/api/honeypot/watch", request.target)
+        assertEquals(24, w.limits?.minPrefixV4)
+        assertEquals("203.0.113.0/24", w.networks.single().cidr)
+        assertEquals(true, w.networks.single().verified)
+        assertEquals("a.ipv64.net", w.dyndns.single().domain)
+        assertEquals(true, w.running)
+        assertEquals(true, w.state?.containsKey("hits"))
+    }
+
+    @Test
+    fun `addWatch posts cidr and label`() = test {
+        enqueueJson("""{"id":2,"cidr":"203.0.113.1/32","label":"x","verified":false}""", code = 201)
+
+        val n = node().honeypot.addWatch(HoneypotWatchRequest("203.0.113.1/32", "x"))
+
+        val request = takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/honeypot/watch", request.target)
+        request.assertJsonBody("""{"cidr":"203.0.113.1/32","label":"x"}""")
+        assertEquals(2L, n.id)
+    }
+
+    @Test
+    fun `checkWatch posts and decodes hits`() = test {
+        enqueueJson("""{"new_hits":3,"state":{}}""")
+
+        val c = node().honeypot.checkWatch()
+
+        val request = takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/honeypot/watch/check", request.target)
+        assertEquals(3, c.newHits)
+    }
+
+    @Test
+    fun `deleteWatch sends DELETE`() = test {
+        enqueueNoContent()
+
+        node().honeypot.deleteWatch(4)
+
+        val request = takeRequest()
+        assertEquals("DELETE", request.method)
+        assertEquals("/api/honeypot/watch/4", request.target)
     }
 }

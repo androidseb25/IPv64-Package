@@ -74,6 +74,8 @@ public data class DNS64GroupMember(
     val kind: String? = null,
     val value: String? = null,
     val label: String? = null,
+    /** Own tags for sorting and filtering (max. 10, each max. 24 characters), no effect on the rules. */
+    val tags: List<String> = emptyList(),
 )
 
 /** Request body of `POST /dns64/groups/{id}/members`. */
@@ -83,6 +85,7 @@ public data class DNS64GroupMemberRequest(
     /** MAC address, IP address or network. */
     val value: String,
     val label: String? = null,
+    val tags: List<String>? = null,
 )
 
 /** Domain rule (allow/block) of a group, including subdomains. */
@@ -200,3 +203,17 @@ public data class DNS64GroupNameRequest(val name: String)
 /** Request body of `POST /dns64/groups/{id}/move`. */
 @Serializable
 public data class DNS64GroupMoveRequest(val up: Boolean)
+
+/** Request body of `PATCH /dns64/groups/members/{id}`. */
+@Serializable
+public data class DNS64GroupMemberUpdateRequest(
+    val label: String? = null,
+    val tags: List<String>? = null,
+)
+
+/** Request body of `POST /dns64/groups/unassign`. */
+@Serializable
+public data class DNS64GroupUnassignRequest(
+    val mac: String? = null,
+    val ip: String? = null,
+)

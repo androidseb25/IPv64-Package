@@ -1016,6 +1016,153 @@ public data class Hc2MaintenanceUpdate(
 )
 
 // ---------------------------------------------------------------------------------------------
+// Status pages
+// ---------------------------------------------------------------------------------------------
+
+/** Language of a status page. */
+@Serializable
+public enum class Hc2StatusPageLang(override val value: String) : ApiValue {
+    @SerialName("auto") AUTO("auto"),
+    @SerialName("de") DE("de"),
+    @SerialName("en") EN("en"),
+}
+
+/** Colour theme of a status page. */
+@Serializable
+public enum class Hc2StatusPageTheme(override val value: String) : ApiValue {
+    @SerialName("auto") AUTO("auto"),
+    @SerialName("light") LIGHT("light"),
+    @SerialName("dark") DARK("dark"),
+}
+
+/** Layout of a status page: list with 90 days (default) or small cards with the last 6 hours. */
+@Serializable
+public enum class Hc2StatusPageLayout(override val value: String) : ApiValue {
+    @SerialName("list") LIST("list"),
+    @SerialName("cards") CARDS("cards"),
+}
+
+/** Group of checks on a status page. */
+@Serializable
+public data class Hc2StatusGroup(
+    /** Heading of the group (max. 100 characters), empty = no heading. */
+    val name: String? = null,
+    /** Check tokens in display order (no Docker/Proxmox checks). */
+    val tokens: List<String> = emptyList(),
+)
+
+/** A status page. */
+@Serializable
+public data class Hc2StatusPage(
+    /** ID. */
+    val id: Long? = null,
+    /** Address. */
+    val slug: String? = null,
+    /** Public page URL. */
+    val url: String? = null,
+    /** Same data as public JSON. */
+    @SerialName("json_url") val jsonUrl: String? = null,
+    /** Title. */
+    val title: String? = null,
+    /** Description. */
+    val description: String? = null,
+    /** Language. */
+    val lang: Hc2StatusPageLang? = null,
+    /** Theme. */
+    val theme: Hc2StatusPageTheme? = null,
+    /** Layout. */
+    val layout: Hc2StatusPageLayout? = null,
+    /** `false` = only visible via [previewUrl]. */
+    val published: Boolean? = null,
+    /** Whether outages of the last 14 days are shown. */
+    @SerialName("show_history") val showHistory: Boolean? = null,
+    /** Whether the page reloads every minute. */
+    val autorefresh: Boolean? = null,
+    /** URL with preview key (also for hidden pages); do not share. */
+    @SerialName("preview_url") val previewUrl: String? = null,
+    /** Groups; only present for a single page. */
+    val groups: List<Hc2StatusGroup> = emptyList(),
+    /** Creation time. */
+    @SerialName("created_at") val createdAt: IsoInstant? = null,
+    /** Last change. */
+    @SerialName("updated_at") val updatedAt: IsoInstant? = null,
+) {
+    override fun toString(): String =
+        "Hc2StatusPage(id=$id, slug=$slug, url=$url, jsonUrl=$jsonUrl, title=$title, description=$description, " +
+            "lang=$lang, theme=$theme, layout=$layout, published=$published, showHistory=$showHistory, " +
+            "autorefresh=$autorefresh, previewUrl=${previewUrl?.let { "<redacted>" }}, groups=$groups, " +
+            "createdAt=$createdAt, updatedAt=$updatedAt)"
+}
+
+/**
+ * Request body of `POST`/`PATCH /hc2/status-pages`. [title] is required on create; on PATCH only set properties
+ * are changed, [groups] replaces all groups.
+ */
+@Serializable
+public data class Hc2StatusPageInput(
+    /** Title (max. 120 characters). */
+    val title: String? = null,
+    /** Address, unique across accounts; missing on create = random. */
+    val slug: String? = null,
+    /** Description (max. 1000 characters). */
+    val description: String? = null,
+    /** Groups (max. 20, max. 100 checks per page, each check once). */
+    val groups: List<Hc2StatusGroup>? = null,
+    /** Language. */
+    val lang: Hc2StatusPageLang? = null,
+    /** Theme. */
+    val theme: Hc2StatusPageTheme? = null,
+    /** Layout. */
+    val layout: Hc2StatusPageLayout? = null,
+    /** Published. */
+    val published: Boolean? = null,
+    /** Show outages of the last 14 days. */
+    @SerialName("show_history") val showHistory: Boolean? = null,
+    /** Reload the page every minute. */
+    val autorefresh: Boolean? = null,
+)
+
+/** Kind of a status notice. */
+@Serializable
+public enum class Hc2StatusNoticeKind(override val value: String) : ApiValue {
+    @SerialName("info") INFO("info"),
+    @SerialName("maintenance") MAINTENANCE("maintenance"),
+    @SerialName("incident") INCIDENT("incident"),
+}
+
+/** An announcement on a status page. */
+@Serializable
+public data class Hc2StatusNotice(
+    /** ID. */
+    val id: Long? = null,
+    /** Kind. */
+    val kind: Hc2StatusNoticeKind? = null,
+    /** Title. */
+    val title: String? = null,
+    /** Text. */
+    val body: String? = null,
+    /** Whether resolved. */
+    val resolved: Boolean? = null,
+    /** Creation time. */
+    @SerialName("created_at") val createdAt: IsoInstant? = null,
+    /** Time it was resolved, `null` if open. */
+    @SerialName("resolved_at") val resolvedAt: IsoInstant? = null,
+)
+
+/** Request body of `POST`/`PATCH` status notices. [title] is required on create; on PATCH only set properties change. */
+@Serializable
+public data class Hc2StatusNoticeInput(
+    /** Kind. */
+    val kind: Hc2StatusNoticeKind? = null,
+    /** Title (max. 200 characters). */
+    val title: String? = null,
+    /** Text (max. 2000 characters). */
+    val body: String? = null,
+    /** Resolved; stays on the page for another 7 days. */
+    val resolved: Boolean? = null,
+)
+
+// ---------------------------------------------------------------------------------------------
 // Account and settings
 // ---------------------------------------------------------------------------------------------
 

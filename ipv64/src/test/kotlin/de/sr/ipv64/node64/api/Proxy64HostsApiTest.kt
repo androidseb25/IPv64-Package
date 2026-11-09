@@ -220,4 +220,95 @@ class Proxy64HostsApiTest : Node64ApiTestBaseB() {
         assertEquals(true, t.probes[1].skipped)
         assertEquals("unreachable", t.probes[1].error)
     }
+
+    @Test
+    fun `list by kind stream and decode location action and advanced additions`() = test<Unit> {
+        enqueueJson(
+            """[{"id":1,"kind":"stream","locations":[{"path":"/x","action":"respond","status":418,"body":"tea","content_type":"text/plain",
+            "advanced":{"timeout_seconds":5,"buffering":"off"}},{"path":"/y","action":""}],
+            "advanced":{"maintenance":true,"maintenance_style":"gear","error_override":true,"target_path":"/p","only_locations":true,
+            "bw_down_mbit":100,"bw_up_mbit":10}}]""",
+        )
+        val h = hosts.list(ProxyHostKind.STREAM).single()
+        expectRequest("GET", "/api/cdn64/hosts?kind=stream")
+        assertEquals(ProxyHostKind.STREAM, h.kind)
+        val l = h.locations[0]
+        assertEquals(LocationAction.RESPOND, l.action)
+        assertEquals(418, l.status)
+        assertEquals("tea", l.body)
+        assertEquals(LocationBuffering.OFF, l.advanced!!.buffering)
+        assertEquals(LocationAction.FORWARD, h.locations[1].action)
+        val a = h.advanced!!
+        assertEquals(true, a.maintenance)
+        assertEquals(MaintenanceStyle.GEAR, a.maintenanceStyle)
+        assertEquals(100, a.bwDownMbit)
+        assertEquals("/p", a.targetPath)
+    }
+
+    @Test
+    fun `create posts ca certificate request and location block`() = test<Unit> {
+        enqueueJson(hostJson)
+        hosts.create(
+            ProxyHostInput(
+                kind = ProxyHostKind.STREAM,
+                requestCertificate = ProxyHostRequestCertificate(source = RequestCertificateSource.CA, caId = 4, acceptTos = true),
+                locations = listOf(CDNLocation(path = "/", action = LocationAction.BLOCK, status = 403)),
+            ),
+        )
+        assertEquals(
+            js(
+                """{"kind":"stream","request_certificate":{"source":"ca","ca_id":4,"accept_tos":true},
+                "locations":[{"path":"/","action":"block","status":403}]}""",
+            ),
+            expectRequest("POST", "/api/cdn64/hosts").jsonBody(),
+        )
+    }
+
+    @Test
+    fun `pauseOnline posts paused`() = test<Unit> {
+        enqueueNoContent()
+        hosts.pauseOnline(3, PauseOnlineRequest(paused = false))
+        assertEquals(js("""{"paused":false}"""), expectRequest("POST", "/api/cdn64/hosts/3/online/pause").jsonBody())
+    }
+
+    @Test
+    fun `servers and setServers`() = test<Unit> {
+        enqueueJson("""{"count":2,"sessions":3,"options":[0,1,2]}""")
+        val s = hosts.servers(3)
+        expectRequest("GET", "/api/cdn64/hosts/3/servers")
+        assertEquals(2, s.count)
+        assertEquals(listOf(0, 1, 2), s.options)
+
+        enqueueJson("""{"count":1}""")
+        hosts.setServers(3, SetCDNServersRequest(count = 1, sessions = 4))
+        assertEquals(js("""{"count":1,"sessions":4}"""), expectRequest("PUT", "/api/cdn64/hosts/3/servers").jsonBody())
+    }
+
+    @Test
+    fun `updateProtection puts and decodes names`() = test<Unit> {
+        enqueueJson("""{"waf":true,"ja4":"count","names":[{"id":1,"fqdn":"a.example.com","waf":true,"ja4":"count"}]}""")
+        val p = hosts.updateProtection(3, HostProtectionRequest(waf = true, ja4 = Ja4Mode.COUNT))
+        assertEquals(js("""{"waf":true,"ja4":"count"}"""), expectRequest("PUT", "/api/cdn64/hosts/3/protection").jsonBody())
+        assertEquals(true, p.waf)
+        assertEquals("count", p.ja4)
+        assertEquals("a.example.com", p.names.single().fqdn)
+    }
+
+    @Test
+    fun `addLocalDns posts addresses and decodes`() = test<Unit> {
+        enqueueJson("""{"added":2,"skipped":["a.example.com A"],"excluded":["*.example.com"],"ipv4":"192.168.1.2","ipv6":"fd00::2"}""")
+        val r = hosts.addLocalDns(3, HostLocalDnsRequest(ipv4 = "192.168.1.2"))
+        assertEquals(js("""{"ipv4":"192.168.1.2"}"""), expectRequest("POST", "/api/cdn64/hosts/3/localdns").jsonBody())
+        assertEquals(2, r.added)
+        assertEquals(listOf("a.example.com A"), r.skipped)
+        assertEquals(listOf("*.example.com"), r.excluded)
+        assertEquals("fd00::2", r.ipv6)
+    }
+
+    @Test
+    fun `addLocalDns without request sends no body`() = test<Unit> {
+        enqueueJson("""{"added":0}""")
+        hosts.addLocalDns(3)
+        assertTrue(expectRequest("POST", "/api/cdn64/hosts/3/localdns").bodyText().let { it.isEmpty() || it == "{}" })
+    }
 }

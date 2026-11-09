@@ -88,6 +88,13 @@ class EdgeApiTest : Node64ApiTestBaseB() {
     }
 
     @Test
+    fun `proxy_protocol is decoded and sent`() = test<Unit> {
+        enqueueJson("""{"config":{"proxy_protocol":"172.18.0.0/16"}}""")
+        assertEquals("172.18.0.0/16", edge.update(EdgeConfigRequest(proxyProtocol = "172.18.0.0/16")).config?.proxyProtocol)
+        assertEquals(js("""{"proxy_protocol":"172.18.0.0/16"}"""), expectRequest("PUT", "/api/edge").jsonBody())
+    }
+
+    @Test
     fun `ui decodes reserved word public`() = test<Unit> {
         enqueueJson("""{"name":"node.example.com","public":true,"cert":"3","cert_from_env":true}""")
         val u = edge.ui()

@@ -42,6 +42,15 @@ public class Dns64GroupsApi internal constructor(private val transport: HttpTran
         transport.unit(Method.DELETE, ApiPath("dns64", "groups", "members", id.toString()))
     }
 
+    /** Changes label and tags of a member (the [id] is the member ID). `PATCH /dns64/groups/members/{id}` */
+    public suspend fun updateMember(id: Long, request: DNS64GroupMemberUpdateRequest): DNS64GroupMember =
+        transport.json(Method.PATCH, ApiPath("dns64", "groups", "members", id.toString()), body = transport.body(request))
+
+    /** Removes a device from its group by [mac] and/or [ip]. `POST /dns64/groups/unassign` */
+    public suspend fun unassign(mac: String? = null, ip: String? = null) {
+        transport.unit(Method.POST, ApiPath("dns64", "groups", "unassign"), body = transport.body(DNS64GroupUnassignRequest(mac, ip)))
+    }
+
     /** Sets the rules of a group: blocklists (global/custom) and categories. `PUT /dns64/groups/{id}/rules` */
     public suspend fun updateRules(id: Long, request: DNS64GroupRulesRequest) {
         transport.unit(Method.PUT, ApiPath("dns64", "groups", id.toString(), "rules"), body = transport.body(request))

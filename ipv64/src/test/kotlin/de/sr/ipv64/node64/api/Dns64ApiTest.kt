@@ -185,6 +185,40 @@ class Dns64ApiTest : Node64ApiTestBaseB() {
     }
 
     @Test
+    fun `addLists posts urls and decodes result`() = test<Unit> {
+        enqueueJson("""{"added":["https://a.example/l.txt"],"duplicates":["https://b.example/l.txt"],"invalid":["x"]}""")
+        val res = dns.addLists(listOf("https://a.example/l.txt", "B | https://b.example/l.txt", "x"))
+        val r = expectRequest("POST", "/api/dns64/lists")
+        assertEquals(js("""{"urls":["https://a.example/l.txt","B | https://b.example/l.txt","x"]}"""), r.jsonBody())
+        assertEquals(listOf("https://a.example/l.txt"), res.added)
+        assertEquals(listOf("https://b.example/l.txt"), res.duplicates)
+        assertEquals(listOf("x"), res.invalid)
+    }
+
+    @Test
+    fun `settings and upstreams decode new fields`() = test<Unit> {
+        enqueueJson("""{"allow_lists":[{"name":"A","url":"https://a.example","enabled":true}],"mdns":true,"docker":false,"docker_ip":"192.168.1.5"}""")
+        val s = dns.settings()
+        expectRequest("GET", "/api/dns64/settings")
+        assertEquals("A", s.allowLists.single().name)
+        assertEquals(true, s.mdns)
+        assertEquals(false, s.docker)
+        assertEquals("192.168.1.5", s.dockerIp)
+        enqueueJson(
+            """{"mode":"ordered","servers":[{"name":"X","pausedUntil":"2026-10-28T09:00:00Z"}],
+            "mdns":{"on":true,"queries":10,"answered":4,"responders":-1,"probed_at":"2026-10-28T08:00:00Z"},"localDomains":["fritz.box"]}""",
+        )
+        val u = dns.upstreams()
+        expectRequest("GET", "/api/dns64/upstreams")
+        assertEquals(Instant.parse("2026-10-28T09:00:00Z"), u.servers.single().pausedUntil)
+        assertEquals(true, u.mdns?.on)
+        assertEquals(4L, u.mdns?.answered)
+        assertEquals(-1, u.mdns?.responders)
+        assertEquals(Instant.parse("2026-10-28T08:00:00Z"), u.mdns?.probedAt)
+        assertEquals(listOf("fritz.box"), u.localDomains)
+    }
+
+    @Test
     fun `removeList is DELETE on the collection with url query`() = test<Unit> {
         enqueueJson(settingsJson)
         assertSettings(dns.removeList("https://example.org/list.txt"))
@@ -421,5 +455,99 @@ class Dns64ApiTest : Node64ApiTestBaseB() {
         e as de.sr.ipv64.Node64ApiException
         assertEquals("minutes", e.field)
         assertEquals("invalid minutes", e.error)
+    }
+
+    @Test
+    fun `allowLists decodes free-form array`() = test<Unit> {
+        enqueueJson("""[{"name":"A"},"x"]""")
+        assertEquals(2, dns.allowLists().size)
+        expectRequest("GET", "/api/dns64/allowlists")
+    }
+
+    @Test
+    fun `addAllowList posts url and decodes settings`() = test<Unit> {
+        enqueueJson("""{"port":53}""")
+        assertEquals(53, dns.addAllowList("https://a.example", "A").port)
+        val r = expectRequest("POST", "/api/dns64/allowlists")
+        assertEquals(js("""{"url":"https://a.example","name":"A"}"""), r.jsonBody())
+    }
+
+    @Test
+    fun `addAllowLists posts urls and decodes result`() = test<Unit> {
+        enqueueJson("""{"added":["https://a.example"],"duplicates":[],"invalid":[]}""")
+        assertEquals(listOf("https://a.example"), dns.addAllowLists(listOf("A | https://a.example")).added)
+        val r = expectRequest("POST", "/api/dns64/allowlists")
+        assertEquals(js("""{"urls":["A | https://a.example"]}"""), r.jsonBody())
+    }
+
+    @Test
+    fun `removeAllowList is DELETE with url query and decodes settings`() = test<Unit> {
+        enqueueJson("""{"port":53,"allow_lists":[]}""")
+        assertEquals(53, dns.removeAllowList("https://a.example").port)
+        expectRequest("DELETE", "/api/dns64/allowlists?url=https%3A%2F%2Fa.example")
+    }
+
+    @Test
+    fun `denylist decodes`() = test<Unit> {
+        enqueueJson("""[{"domain":"bad.com","addedAt":"2026-10-20T10:00:00Z"}]""")
+        val l = dns.denylist()
+        expectRequest("GET", "/api/dns64/denylist")
+        assertEquals("bad.com", l[0].domain)
+        assertEquals(Instant.parse("2026-10-20T10:00:00Z"), l[0].addedAt)
+    }
+
+    @Test
+    fun `deny posts domain`() = test<Unit> {
+        enqueueJson("""{"domain":"bad.com"}""")
+        assertEquals("bad.com", dns.deny("bad.com").domain)
+        assertEquals(js("""{"domain":"bad.com"}"""), expectRequest("POST", "/api/dns64/denylist").jsonBody())
+    }
+
+    @Test
+    fun `removeDenied is DELETE with domain query`() = test<Unit> {
+        enqueueNoContent()
+        dns.removeDenied("bad.com")
+        expectRequest("DELETE", "/api/dns64/denylist?domain=bad.com")
+    }
+
+    @Test
+    fun `replaceDenylist puts domains and decodes result`() = test<Unit> {
+        enqueueJson("""{"total":3,"added":2,"removed":1,"duplicates":0,"invalid":["x y"]}""")
+        val res = dns.replaceDenylist(listOf("a.com", "b.com"))
+        assertEquals(js("""{"domains":["a.com","b.com"]}"""), expectRequest("PUT", "/api/dns64/denylist").jsonBody())
+        assertEquals(3, res.total)
+        assertEquals(2, res.added)
+        assertEquals(1, res.removed)
+        assertEquals(listOf("x y"), res.invalid)
+    }
+
+    @Test
+    fun `docker decodes state`() = test<Unit> {
+        enqueueJson("""{"enabled":true,"connected":true,"host":"unix:///var/run/docker.sock","synced":"2026-10-20T10:00:00Z","containers":[{"container":"web","state":"running","names":["web.docker"],"addrs":["172.17.0.2"],"problem":"p","problem_name":"n"}]}""")
+        val d = dns.docker()
+        expectRequest("GET", "/api/dns64/docker")
+        assertEquals(true, d.connected)
+        assertEquals("web", d.containers[0].container)
+        assertEquals(listOf("172.17.0.2"), d.containers[0].addrs)
+        assertEquals("n", d.containers[0].problemName)
+    }
+
+    @Test
+    fun `services decodes catalog`() = test<Unit> {
+        enqueueJson("""{"categories":["social"],"groups":["g"],"services":[{"key":"k","id":"i","name":"N","group":"g","domains":["a.com"]}]}""")
+        val s = dns.services()
+        expectRequest("GET", "/api/dns64/services")
+        assertEquals(listOf("social"), s.categories)
+        assertEquals("N", s.services[0].name)
+        assertEquals(listOf("a.com"), s.services[0].domains)
+    }
+
+    @Test
+    fun `topList sends all query params and decodes page`() = test<Unit> {
+        enqueueJson("""{"items":[{"name":"a.com","count":5,"blocked":1}],"total":42}""")
+        val p = dns.topList(DNS64TopKind.BLOCKED, DNS64Range.DAYS_7, q = "a", sort = "count", dir = "desc", limit = 10, offset = 20)
+        val r = expectRequest("GET", "/api/dns64/top/list?kind=blocked&range=7d&q=a&sort=count&dir=desc&limit=10&offset=20")
+        assertEquals(42, p.total)
+        assertEquals(5L, p.items[0].count)
     }
 }

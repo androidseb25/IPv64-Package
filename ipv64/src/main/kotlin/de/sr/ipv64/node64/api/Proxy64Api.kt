@@ -12,13 +12,20 @@ import de.sr.ipv64.node64.model.CDNHoneypotView
 import de.sr.ipv64.node64.model.CDNLimitsRequest
 import de.sr.ipv64.node64.model.CDNLimitsView
 import de.sr.ipv64.node64.model.CDNOnlineStatus
+import de.sr.ipv64.node64.model.CDNProtectionStats
+import de.sr.ipv64.node64.model.CDNServers
 import de.sr.ipv64.node64.model.ProxyCheckState
+import de.sr.ipv64.node64.model.PauseOnlineRequest
 import de.sr.ipv64.node64.model.ProxyDefaultPage
+import de.sr.ipv64.node64.model.ProxyDockerView
 import de.sr.ipv64.node64.model.ProxyLogEntry
 import de.sr.ipv64.node64.model.ProxySettings
+import de.sr.ipv64.node64.model.ReleaseBlockRequest
+import de.sr.ipv64.node64.model.SetCDNServersRequest
 import de.sr.ipv64.node64.model.SetOnlineTunnelRequest
 import de.sr.ipv64.node64.model.UpdateBlocklistsRequest
 import de.sr.ipv64.node64.model.UpdateProxyDefaultPageRequest
+import de.sr.ipv64.node64.model.UpdateProxyDockerRequest
 import de.sr.ipv64.node64.model.UpdateProxySettingsRequest
 import kotlinx.serialization.json.JsonObject
 
@@ -161,4 +168,35 @@ public class Proxy64Api internal constructor(private val transport: HttpTranspor
      */
     public suspend fun registerOnlineTunnel(): CDNOnlineStatus =
         transport.json(Method.POST, ApiPath("cdn64", "online", "tunnel"))
+
+    /** Servers and connections per server of the own tunnel (portal without server per name). `GET /cdn64/online/servers` */
+    public suspend fun onlineServers(): CDNServers =
+        transport.json(Method.GET, ApiPath("cdn64", "online", "servers"))
+
+    /** Sets servers and connections per server of the own tunnel. `PUT /cdn64/online/servers` */
+    public suspend fun setOnlineServers(request: SetCDNServersRequest): CDNServers =
+        transport.json(Method.PUT, ApiPath("cdn64", "online", "servers"), body = transport.body(request))
+
+    /** Pauses/resumes a name that this node does not manage (mode 3 of ipv64.net, other nodes); [rid] is the name ID at ipv64. `POST /cdn64/online/names/{rid}/pause` */
+    public suspend fun pauseOnlineName(rid: Long, request: PauseOnlineRequest) {
+        transport.unit(Method.POST, ApiPath("cdn64", "online", "names", rid.toString(), "pause"), body = transport.body(request))
+    }
+
+    /** CDN64 statistics: what the CDN64 servers blocked for the names of the account; [days] is 1, 7 (default) or 30. `GET /cdn64/protection` */
+    public suspend fun protection(days: Int? = null): CDNProtectionStats =
+        transport.json(Method.GET, ApiPath("cdn64", "protection"), query("days" to days))
+
+    /** Lifts an automatic block and adds the address to the allow list. `POST /cdn64/release` */
+    public suspend fun release(request: ReleaseBlockRequest): CDNBlocklists =
+        transport.json(Method.POST, ApiPath("cdn64", "release"), body = transport.body(request))
+
+    // ---- Docker sync ----
+
+    /** Docker sync: state, containers and settings. `GET /cdn64/docker` */
+    public suspend fun docker(): ProxyDockerView =
+        transport.json(Method.GET, ApiPath("cdn64", "docker"))
+
+    /** Configures the Docker sync (missing fields stay). `PUT /cdn64/docker` */
+    public suspend fun updateDocker(request: UpdateProxyDockerRequest): ProxyDockerView =
+        transport.json(Method.PUT, ApiPath("cdn64", "docker"), body = transport.body(request))
 }
