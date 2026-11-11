@@ -123,24 +123,25 @@ class Proxy64HostsApiTest : Node64ApiTestBaseB() {
     fun `new advanced and location fields decode and encode`() = test<Unit> {
         enqueueJson(
             """{"id":3,"locations":[{"path":"/","denied_redirect":"/login","advanced":{"target_http":"h2c"}}],
-            "advanced":{"proxy_protocol":"v2","target_http":""}}""",
+            "advanced":{"proxy_protocol":"v2","target_http":"","no_probe":true}}""",
         )
         val h = hosts.get(3)
         assertEquals("/login", h.locations.single().deniedRedirect)
         assertEquals(TargetHttp.H2C, h.locations.single().advanced?.targetHttp)
         assertEquals(ProxyProtocol.V2, h.advanced?.proxyProtocol)
         assertEquals(TargetHttp.DEFAULT, h.advanced?.targetHttp)
+        assertEquals(true, h.advanced?.noProbe)
         expectRequest("GET", "/api/cdn64/hosts/3")
         enqueueJson(hostJson)
         hosts.create(
             ProxyHostInput(
                 locations = listOf(CDNLocation(path = "/", deniedRedirect = "/x", advanced = CDNLocationAdvanced(targetHttp = TargetHttp.H1))),
-                advanced = CDNAdvanced(proxyProtocol = ProxyProtocol.V1, targetHttp = TargetHttp.AUTO),
+                advanced = CDNAdvanced(proxyProtocol = ProxyProtocol.V1, targetHttp = TargetHttp.AUTO, noProbe = true),
             ),
         )
         assertEquals(
             js("""{"locations":[{"path":"/","denied_redirect":"/x","advanced":{"target_http":"h1"}}],
-                "advanced":{"proxy_protocol":"v1","target_http":"auto"}}"""),
+                "advanced":{"proxy_protocol":"v1","target_http":"auto","no_probe":true}}"""),
             expectRequest("POST", "/api/cdn64/hosts").jsonBody(),
         )
     }

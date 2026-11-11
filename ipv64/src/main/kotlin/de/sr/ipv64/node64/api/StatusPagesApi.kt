@@ -5,6 +5,7 @@ import de.sr.ipv64.internal.HttpTransport
 import de.sr.ipv64.internal.Method
 import de.sr.ipv64.internal.body
 import de.sr.ipv64.internal.json
+import de.sr.ipv64.internal.query
 import de.sr.ipv64.node64.model.StatusNotice
 import de.sr.ipv64.node64.model.StatusNoticeInput
 import de.sr.ipv64.node64.model.StatusNoticeUpdateInput
@@ -12,6 +13,7 @@ import de.sr.ipv64.node64.model.StatusPage
 import de.sr.ipv64.node64.model.StatusPageRequest
 import de.sr.ipv64.node64.model.StatusPageUpdateRequest
 import de.sr.ipv64.node64.model.StatusPageItemsRequest
+import kotlinx.serialization.json.JsonObject
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
@@ -38,6 +40,14 @@ public class StatusPagesApi internal constructor(private val transport: HttpTran
     public suspend fun delete(id: Long) {
         transport.unit(Method.DELETE, ApiPath("status-pages", id.toString()))
     }
+
+    /**
+     * Current state of the page (overall state, sections, groups, entries, maintenance, notices), same data as the
+     * page's status.json, also for disabled or password-protected pages. [lang] is `en` (default) or `de`.
+     * `GET /status-pages/{id}/view`
+     */
+    public suspend fun view(id: Long, lang: String? = null): JsonObject =
+        transport.json(Method.GET, ApiPath("status-pages", id.toString(), "view"), query("lang" to lang))
 
     /** Open and resolved notices (newest first, at most 100) with updates. `GET /status-pages/{id}/notices` */
     public suspend fun notices(id: Long): List<StatusNotice> =

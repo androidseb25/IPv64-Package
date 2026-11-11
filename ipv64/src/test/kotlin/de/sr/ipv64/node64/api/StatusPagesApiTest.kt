@@ -11,6 +11,7 @@ import de.sr.ipv64.node64.model.StatusPageLayout
 import de.sr.ipv64.node64.model.StatusPageRequest
 import de.sr.ipv64.node64.model.StatusPageTheme
 import de.sr.ipv64.node64.model.StatusPageUpdateRequest
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -233,5 +234,17 @@ class StatusPagesApiTest : Node64ApiTestBaseA() {
         assertEquals("/api/status-pages/2/items", request.target)
         request.assertJsonBody("""{"group_id":3,"tokens":["ck1"]}""")
         assertEquals(2L, page.id)
+    }
+
+    @Test
+    fun `view gets state with lang`() = test {
+        enqueueJson("""{"status":"ok","sections":[]}""")
+
+        val view = node().statusPages.view(2, lang = "de")
+
+        val request = takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/api/status-pages/2/view?lang=de", request.target)
+        assertEquals("ok", view["status"]?.jsonPrimitive?.content)
     }
 }

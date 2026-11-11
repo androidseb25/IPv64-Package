@@ -15,6 +15,7 @@ import de.sr.ipv64.node64.api.Ipv64ChannelsApi
 import de.sr.ipv64.node64.api.LinkApi
 import de.sr.ipv64.node64.api.MaintenanceApi
 import de.sr.ipv64.node64.api.McpApi
+import de.sr.ipv64.node64.api.Monitor64Api
 import de.sr.ipv64.node64.api.NodeApi
 import de.sr.ipv64.node64.api.OnlineChecksApi
 import de.sr.ipv64.node64.api.Proxy64Api
@@ -132,6 +133,9 @@ public class Node64(
     /** MCP switch, areas and keys. */
     public val mcp: McpApi = McpApi(transport)
 
+    /** Monitor64: hosts, services, thresholds, problems, notification, maintenance, agent and cluster. */
+    public val monitor64: Monitor64Api = Monitor64Api(transport)
+
     /**
      * Returns a client that writes [actor] as the actor name into the node's audit log
      * (`X-Agent-Actor`). The returned client shares the connection pool with this one.
@@ -148,6 +152,6 @@ public class Node64(
 
     public companion object {
         /** Default `User-Agent` header. */
-        public const val DEFAULT_USER_AGENT: String = "IPv64-Android/2.0.0 (Node64)"
+        public const val DEFAULT_USER_AGENT: String = "IPv64-Android/2.1.0 (Node64)"
     }
 }

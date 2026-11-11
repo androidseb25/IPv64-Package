@@ -38,12 +38,13 @@ internal enum class Method { GET, POST, PUT, PATCH, DELETE }
  */
 internal class ApiPath(vararg val segments: String)
 
-/** Builds a query map and silently drops `null` values. */
-internal fun query(vararg pairs: Pair<String, Any?>): Map<String, String> = buildMap {
+/** Builds a query map and silently drops `null` values; an [Iterable] value becomes a repeated parameter (`null` entries dropped). */
+internal fun query(vararg pairs: Pair<String, Any?>): Map<String, Any> = buildMap {
     for ((key, value) in pairs) {
         when (value) {
             null -> Unit
             is ApiValue -> put(key, value.value)
+            is Iterable<*> -> put(key, value.mapNotNull { if (it is ApiValue) it.value else it?.toString() })
             else -> put(key, value.toString())
         }
     }
@@ -76,7 +77,7 @@ internal class HttpTransport(
         method: Method,
         path: ApiPath,
         deserializer: KSerializer<T>,
-        query: Map<String, String> = emptyMap(),
+        query: Map<String, Any> = emptyMap(),
         body: RequestBody? = null,
         headers: Map<String, String> = emptyMap(),
     ): T {
@@ -89,7 +90,7 @@ internal class HttpTransport(
         method: Method,
         path: ApiPath,
         itemSerializer: KSerializer<T>,
-        query: Map<String, String> = emptyMap(),
+        query: Map<String, Any> = emptyMap(),
         headers: Map<String, String> = emptyMap(),
     ): Page<T> {
         val raw = execute(method, path, query, null, headers)
@@ -100,7 +101,7 @@ internal class HttpTransport(
     suspend fun unit(
         method: Method,
         path: ApiPath,
-        query: Map<String, String> = emptyMap(),
+        query: Map<String, Any> = emptyMap(),
         body: RequestBody? = null,
         headers: Map<String, String> = emptyMap(),
     ) {
@@ -112,7 +113,7 @@ internal class HttpTransport(
         method: Method,
         path: ApiPath,
         deserializer: KSerializer<T>,
-        query: Map<String, String> = emptyMap(),
+        query: Map<String, Any> = emptyMap(),
         body: RequestBody? = null,
         headers: Map<String, String> = emptyMap(),
     ): T = decode(deserializer, execute(method, path, query, body, headers).body)
@@ -121,7 +122,7 @@ internal class HttpTransport(
     suspend fun jsonOrNull(
         method: Method,
         path: ApiPath,
-        query: Map<String, String> = emptyMap(),
+        query: Map<String, Any> = emptyMap(),
         body: RequestBody? = null,
         headers: Map<String, String> = emptyMap(),
     ): JsonElement? {
@@ -133,7 +134,7 @@ internal class HttpTransport(
     suspend fun bytes(
         method: Method,
         path: ApiPath,
-        query: Map<String, String> = emptyMap(),
+        query: Map<String, Any> = emptyMap(),
         body: RequestBody? = null,
         headers: Map<String, String> = emptyMap(),
     ): ByteArray = execute(method, path, query, body, headers).bytes
@@ -142,7 +143,7 @@ internal class HttpTransport(
     suspend fun text(
         method: Method,
         path: ApiPath,
-        query: Map<String, String> = emptyMap(),
+        query: Map<String, Any> = emptyMap(),
         body: RequestBody? = null,
         headers: Map<String, String> = emptyMap(),
     ): String = execute(method, path, query, body, headers).body
@@ -151,7 +152,7 @@ internal class HttpTransport(
     suspend fun raw(
         method: Method,
         path: ApiPath,
-        query: Map<String, String> = emptyMap(),
+        query: Map<String, Any> = emptyMap(),
         body: RequestBody? = null,
         headers: Map<String, String> = emptyMap(),
     ): RawResponse = execute(method, path, query, body, headers)
@@ -170,14 +171,16 @@ internal class HttpTransport(
     private suspend fun execute(
         method: Method,
         path: ApiPath,
-        query: Map<String, String>,
+        query: Map<String, Any>,
         body: RequestBody?,
         headers: Map<String, String>,
     ): RawResponse {
         val url = baseUrl.newBuilder().apply {
             if (path.segments.isEmpty()) addPathSegment("") // API root needs the trailing slash
             path.segments.forEach { addPathSegment(it) }
-            query.forEach { (key, value) -> addQueryParameter(key, value) }
+            query.forEach { (key, value) ->
+                if (value is Iterable<*>) value.forEach { addQueryParameter(key, it.toString()) } else addQueryParameter(key, value.toString())
+            }
         }.build()
 
         val request = Request.Builder()
@@ -243,7 +246,7 @@ internal fun ipv64ApiException(raw: RawResponse): IPv64Exception {
 internal suspend inline fun <reified T> HttpTransport.json(
     method: Method,
     path: ApiPath,
-    query: Map<String, String> = emptyMap(),
+    query: Map<String, Any> = emptyMap(),
     body: RequestBody? = null,
     headers: Map<String, String> = emptyMap(),
 ): T = json(method, path, serializer<T>(), query, body, headers)
@@ -252,7 +255,7 @@ internal suspend inline fun <reified T> HttpTransport.json(
 internal suspend inline fun <reified T> HttpTransport.data(
     method: Method,
     path: ApiPath,
-    query: Map<String, String> = emptyMap(),
+    query: Map<String, Any> = emptyMap(),
     body: RequestBody? = null,
     headers: Map<String, String> = emptyMap(),
 ): T = data(method, path, serializer<T>(), query, body, headers)
@@ -261,7 +264,7 @@ internal suspend inline fun <reified T> HttpTransport.data(
 internal suspend inline fun <reified T> HttpTransport.list(
     method: Method,
     path: ApiPath,
-    query: Map<String, String> = emptyMap(),
+    query: Map<String, Any> = emptyMap(),
     body: RequestBody? = null,
     headers: Map<String, String> = emptyMap(),
 ): List<T> = data(method, path, ListSerializer(serializer<T>()), query, body, headers)
@@ -270,7 +273,7 @@ internal suspend inline fun <reified T> HttpTransport.list(
 internal suspend inline fun <reified T> HttpTransport.page(
     method: Method,
     path: ApiPath,
-    query: Map<String, String> = emptyMap(),
+    query: Map<String, Any> = emptyMap(),
     headers: Map<String, String> = emptyMap(),
 ): Page<T> = page(method, path, serializer<T>(), query, headers)
 

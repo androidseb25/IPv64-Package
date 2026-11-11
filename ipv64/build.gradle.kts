@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "de.sr"
-version = "2.0.0"
+version = "2.1.0"
 
 android {
     namespace = "de.sr.ipv64"

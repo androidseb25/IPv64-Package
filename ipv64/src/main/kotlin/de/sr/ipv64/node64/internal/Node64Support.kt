@@ -19,7 +19,7 @@ import kotlin.time.Instant
 internal suspend inline fun <reified T : Any> HttpTransport.jsonOptional(
     method: Method,
     path: ApiPath,
-    query: Map<String, String> = emptyMap(),
+    query: Map<String, Any> = emptyMap(),
     body: RequestBody? = null,
     headers: Map<String, String> = emptyMap(),
 ): T? {

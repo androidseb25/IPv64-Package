@@ -291,6 +291,8 @@ public data class CDNAdvanced(
     @SerialName("proxy_protocol") val proxyProtocol: ProxyProtocol? = null,
     /** Only proxy hosts: protocol to the target, `""`/`auto` = automatic, `h1` = HTTP/1.1 only, `h2c` = HTTP/2 (gRPC). */
     @SerialName("target_http") val targetHttp: TargetHttp? = null,
+    /** Do not check the target for reachability (proxy host, TLS passthrough), e.g. for services without a web UI: no "unreachable" display, no `node64_cdn64_host_target_up` metric. */
+    @SerialName("no_probe") val noProbe: Boolean? = null,
 )
 
 /** Optionally request a certificate for all domains along with the host (runs in the background). */
