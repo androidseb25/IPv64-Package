@@ -21,7 +21,6 @@ public enum class CheckType(override val value: String) : ApiValue {
     @SerialName("cert") CERT("cert"),
     @SerialName("whois") WHOIS("whois"),
     @SerialName("push") PUSH("push"),
-    @SerialName("docker") DOCKER("docker"),
 }
 
 /** IP version used for the measurement. */
@@ -210,7 +209,7 @@ public data class CheckRequest(
     val parent: String? = null,
     /** Critical check. */
     val critical: Boolean? = null,
-    /** Where the check is measured (online/both need an ipv64 link; docker only local). */
+    /** Where the check is measured (online/both need an ipv64 link). */
     val execution: CheckExecution? = null,
     /** Overall state policy with several measuring points. */
     val policy: CheckPolicy? = null,

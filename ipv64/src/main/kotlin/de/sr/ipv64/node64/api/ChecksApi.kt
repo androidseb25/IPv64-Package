@@ -133,7 +133,7 @@ public class ChecksApi internal constructor(private val transport: HttpTransport
         transport.json(Method.GET, ApiPath("incidents"), query("limit" to limit))
 
     /**
-     * Available check types (http, keyword, icmp, tcp, port, cert, push, docker, …).
+     * Available check types (http, keyword, icmp, tcp, port, cert, push, …).
      * Response body is not documented by the API.
      * `GET /check-types`
      */

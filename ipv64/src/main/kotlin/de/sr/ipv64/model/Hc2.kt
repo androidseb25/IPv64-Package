@@ -21,7 +21,6 @@ public enum class Hc2CheckType(override val value: String) : ApiValue {
     @SerialName("port") PORT("port"),
     @SerialName("cert") CERT("cert"),
     @SerialName("push") PUSH("push"),
-    @SerialName("docker") DOCKER("docker"),
     @SerialName("whois") WHOIS("whois"),
 }
 
@@ -475,7 +474,7 @@ public data class Hc2CheckInput(
     val execution: Hc2Execution? = null,
     /** Owner node for local/both; on its own it means a single measuring node. */
     @SerialName("node_id") val nodeId: String? = null,
-    /** Measuring node IDs for local/both (docker/push exactly one). */
+    /** Measuring node IDs for local/both (push exactly one). */
     val nodes: List<String>? = null,
     /** Locations for online/both (`nbg`, `fsn`). */
     val locations: List<String>? = null,
@@ -541,7 +540,7 @@ public data class Hc2CheckUpdate(
     val execution: Hc2Execution? = null,
     /** Owner node for local/both (see [forceMove]). */
     @SerialName("node_id") val nodeId: String? = null,
-    /** Measuring node IDs for local/both (docker/push exactly one). */
+    /** Measuring node IDs for local/both (push exactly one). */
     val nodes: List<String>? = null,
     /** Locations for online/both (`nbg`, `fsn`) (see [forceMove]). */
     val locations: List<String>? = null,
@@ -1047,7 +1046,7 @@ public enum class Hc2StatusPageLayout(override val value: String) : ApiValue {
 public data class Hc2StatusGroup(
     /** Heading of the group (max. 100 characters), empty = no heading. */
     val name: String? = null,
-    /** Check tokens in display order (no Docker/Proxmox checks). */
+    /** Check tokens in display order. */
     val tokens: List<String> = emptyList(),
 )
 

@@ -21,6 +21,9 @@ public class Dns64Api internal constructor(private val transport: HttpTransport)
     /** Conditional forwards. */
     public val forwards: Dns64ForwardsApi = Dns64ForwardsApi(transport)
 
+    /** DHCP server: networks, fixed addresses, leases and IPv6 router advertisement. */
+    public val dhcp: Dns64DhcpApi = Dns64DhcpApi(transport)
+
     /** Rewrites of names. */
     public val rewrites: Dns64RewritesApi = Dns64RewritesApi(transport)
 

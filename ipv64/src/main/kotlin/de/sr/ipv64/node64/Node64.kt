@@ -8,7 +8,6 @@ import de.sr.ipv64.node64.api.ChannelsApi
 import de.sr.ipv64.node64.api.ChecksApi
 import de.sr.ipv64.node64.api.ClusterApi
 import de.sr.ipv64.node64.api.Dns64Api
-import de.sr.ipv64.node64.api.DockerApi
 import de.sr.ipv64.node64.api.DynDnsApi
 import de.sr.ipv64.node64.api.EdgeApi
 import de.sr.ipv64.node64.api.HoneypotApi
@@ -18,7 +17,6 @@ import de.sr.ipv64.node64.api.MaintenanceApi
 import de.sr.ipv64.node64.api.McpApi
 import de.sr.ipv64.node64.api.NodeApi
 import de.sr.ipv64.node64.api.OnlineChecksApi
-import de.sr.ipv64.node64.api.ProxmoxApi
 import de.sr.ipv64.node64.api.Proxy64Api
 import de.sr.ipv64.node64.api.Sonar64Api
 import de.sr.ipv64.node64.api.StatusPagesApi
@@ -104,12 +102,6 @@ public class Node64(
     /** Status pages including notices and logo. */
     public val statusPages: StatusPagesApi = StatusPagesApi(transport)
 
-    /** Docker monitoring (containers and Docker systems). */
-    public val docker: DockerApi = DockerApi(transport)
-
-    /** Proxmox VE monitoring. */
-    public val proxmox: ProxmoxApi = ProxmoxApi(transport)
-
     /** Notification channels and deliveries. */
     public val channels: ChannelsApi = ChannelsApi(transport)
 
@@ -156,6 +148,6 @@ public class Node64(
 
     public companion object {
         /** Default `User-Agent` header. */
-        public const val DEFAULT_USER_AGENT: String = "IPv64-Android/1.1.0 (Node64)"
+        public const val DEFAULT_USER_AGENT: String = "IPv64-Android/2.0.0 (Node64)"
     }
 }

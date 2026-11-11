@@ -60,6 +60,16 @@ class Proxy64StreamsApiTest : Node64ApiTestBaseB() {
     }
 
     @Test
+    fun `proxy protocol decodes and encodes`() = test<Unit> {
+        enqueueJson("""{"id":4,"proxy_protocol":"v1"}""")
+        assertEquals(ProxyProtocol.V1, streams.get(4).proxyProtocol)
+        expectRequest("GET", "/api/cdn64/streams/4")
+        enqueueJson(streamJson)
+        streams.create(StreamInput(listenPort = 25, proxyProtocol = ProxyProtocol.OFF))
+        assertEquals(js("""{"listen_port":25,"proxy_protocol":""}"""), expectRequest("POST", "/api/cdn64/streams").jsonBody())
+    }
+
+    @Test
     fun `create omits null fields`() = test<Unit> {
         enqueueJson(streamJson)
         streams.create(StreamInput(listenPort = 53, udp = true))

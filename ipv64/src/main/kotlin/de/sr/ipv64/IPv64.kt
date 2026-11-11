@@ -159,6 +159,6 @@ public class IPv64(
         public const val DEFAULT_BASE_URL: String = "https://ipv64.net/api/v2"
 
         /** Default `User-Agent` header. */
-        public const val DEFAULT_USER_AGENT: String = "IPv64-Android/1.1.0"
+        public const val DEFAULT_USER_AGENT: String = "IPv64-Android/2.0.0"
     }
 }

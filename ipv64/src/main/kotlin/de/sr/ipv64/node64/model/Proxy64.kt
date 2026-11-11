@@ -65,6 +65,23 @@ public enum class LocationBuffering(override val value: String) : ApiValue {
     @SerialName("off") OFF("off"),
 }
 
+/** PROXY protocol sent to the target: off, v1 (text) or v2 (binary). */
+@Serializable
+public enum class ProxyProtocol(override val value: String) : ApiValue {
+    @SerialName("") OFF(""),
+    @SerialName("v1") V1("v1"),
+    @SerialName("v2") V2("v2"),
+}
+
+/** Protocol to the target: default (host setting / automatic), auto, HTTP/1.1 only or HTTP/2 cleartext (gRPC). */
+@Serializable
+public enum class TargetHttp(override val value: String) : ApiValue {
+    @SerialName("") DEFAULT(""),
+    @SerialName("auto") AUTO("auto"),
+    @SerialName("h1") H1("h1"),
+    @SerialName("h2c") H2C("h2c"),
+}
+
 /** Style of the maintenance page. */
 @Serializable
 public enum class MaintenanceStyle(override val value: String) : ApiValue {
@@ -190,6 +207,8 @@ public data class CDNLocation(
     @SerialName("content_type") val contentType: String? = null,
     /** Own values of the location (action `""` only); unset ones come from the host. */
     val advanced: CDNLocationAdvanced? = null,
+    /** On denied access (403) redirect with 302 to this relative path or http(s) URL, `""` = error page; not for login lists. */
+    @SerialName("denied_redirect") val deniedRedirect: String? = null,
 )
 
 /** Own advanced values of a location. */
@@ -209,6 +228,8 @@ public data class CDNLocationAdvanced(
     @SerialName("response_headers") val responseHeaders: List<CDNHeader> = emptyList(),
     /** Response headers to remove. */
     @SerialName("response_remove") val responseRemove: List<String> = emptyList(),
+    /** Protocol to the target of this location: `""` = as the host, `auto`, `h1`, `h2c`. */
+    @SerialName("target_http") val targetHttp: TargetHttp? = null,
 )
 
 /** Advanced settings of a host. */
@@ -266,6 +287,10 @@ public data class CDNAdvanced(
     @SerialName("bw_down_mbit") val bwDownMbit: Int? = null,
     /** Bandwidth from the visitor (upload) in Mbit/s, 0 = unlimited (0-100000). */
     @SerialName("bw_up_mbit") val bwUpMbit: Int? = null,
+    /** Only kind `passthrough`: PROXY protocol to the target, `""` = off. */
+    @SerialName("proxy_protocol") val proxyProtocol: ProxyProtocol? = null,
+    /** Only proxy hosts: protocol to the target, `""`/`auto` = automatic, `h1` = HTTP/1.1 only, `h2c` = HTTP/2 (gRPC). */
+    @SerialName("target_http") val targetHttp: TargetHttp? = null,
 )
 
 /** Optionally request a certificate for all domains along with the host (runs in the background). */
@@ -532,6 +557,8 @@ public data class StreamInput(
     @SerialName("bw_up_mbit") val bwUpMbit: Int? = null,
     /** Port mapper: expose the port via CDN64 under this name, empty = local only. */
     @SerialName("online_name") val onlineName: String? = null,
+    /** TCP only: PROXY protocol to the target, `""` = off (changing it does not restart the stream). */
+    @SerialName("proxy_protocol") val proxyProtocol: ProxyProtocol? = null,
 )
 
 /** Counters of a stream. */
@@ -590,6 +617,8 @@ public data class Stream(
     @SerialName("bw_down_mbit") val bwDownMbit: Int? = null,
     /** Bandwidth from the visitor in Mbit/s, 0 = unlimited. */
     @SerialName("bw_up_mbit") val bwUpMbit: Int? = null,
+    /** TCP only: PROXY protocol to the target, `""` = off. */
+    @SerialName("proxy_protocol") val proxyProtocol: ProxyProtocol? = null,
 )
 
 /** An IP rule of an access list. */

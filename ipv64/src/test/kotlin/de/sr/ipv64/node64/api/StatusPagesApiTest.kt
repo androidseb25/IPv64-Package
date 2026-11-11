@@ -1,6 +1,5 @@
 package de.sr.ipv64.node64.api
 
-import de.sr.ipv64.node64.model.StatusPageItemResource
 import de.sr.ipv64.node64.model.StatusPageItemsRequest
 import de.sr.ipv64.node64.model.StatusGroupRequest
 import de.sr.ipv64.node64.model.StatusItemRequest
@@ -221,18 +220,18 @@ class StatusPagesApiTest : Node64ApiTestBaseA() {
     }
 
     @Test
-    fun `addItems posts tokens and resources`() = test {
+    fun `addItems posts tokens`() = test {
         enqueueJson("""{"id":2,"title":"T"}""")
 
         val page = node().statusPages.addItems(
             2,
-            StatusPageItemsRequest(groupId = 3, tokens = listOf("ck1"), resources = listOf(StatusPageItemResource(6, "docker/web"))),
+            StatusPageItemsRequest(groupId = 3, tokens = listOf("ck1")),
         )
 
         val request = takeRequest()
         assertEquals("POST", request.method)
         assertEquals("/api/status-pages/2/items", request.target)
-        request.assertJsonBody("""{"group_id":3,"tokens":["ck1"],"resources":[{"system_id":6,"key":"docker/web"}]}""")
+        request.assertJsonBody("""{"group_id":3,"tokens":["ck1"]}""")
         assertEquals(2L, page.id)
     }
 }

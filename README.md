@@ -6,8 +6,8 @@ Das SDK enthält zwei Clients mit gemeinsamem Kern:
   Healthchecks, DNS-Failover, CDN, Cloud Router, DNS64, Healthchecks 2.0, Nodes, Honeypot64, Threat).
   Bildet alle 201 Operationen der [OpenAPI-Spezifikation](https://ipv64.net/api/v2/openapi.json) ab.
 - **`Node64`** – die lokale API einer Node64-Node im eigenen Netz (Healthchecks, Status-Seiten,
-  Docker/Proxmox, DNS64, PROXY64, Zertifikate, DynDNS, Cluster, Honeypot64, Sonar64, MCP, Updates, Benutzer). Bildet alle
-  361 Operationen der Node64-Spezifikation (v1.2.0) ab. Siehe [Node64](#node64).
+  DNS64 inkl. DHCP, PROXY64, Zertifikate, DynDNS, Cluster, Honeypot64, Sonar64, MCP, Updates, Benutzer). Bildet alle
+  352 Operationen der Node64-Spezifikation (v1.2.0, Stand 2026-11-11) ab. Siehe [Node64](#node64).
 
 - 100 % Kotlin, `suspend`-API (Coroutines). Alle Aufrufe sind main-safe.
 - OkHttp 5 + kotlinx.serialization, keine Reflection.
@@ -38,7 +38,7 @@ dependencyResolutionManagement {
 
 ```toml
 [versions]
-ipv64 = "1.1.0"
+ipv64 = "2.0.0"
 
 [libraries]
 ipv64 = { module = "com.github.androidseb25:IPv64-Package", version.ref = "ipv64" }
@@ -54,7 +54,7 @@ dependencies {
 oder direkt:
 
 ```kotlin
-implementation("com.github.androidseb25:IPv64-Package:1.1.0")
+implementation("com.github.androidseb25:IPv64-Package:2.0.0")
 ```
 
 **3. Voraussetzungen der App:** `compileSdk = 37` (verlangt von OkHttp 5.5), `minSdk` ≥ 26,
@@ -62,7 +62,7 @@ Java 17. Die `INTERNET`-Berechtigung bringt das Package selbst mit. OkHttp, Coro
 kotlinx.serialization kommen transitiv mit.
 
 Alternativ als lokales Modul (`include(":ipv64")` + `implementation(project(":ipv64"))`) oder per
-`./gradlew :ipv64:publishToMavenLocal` als `de.sr:ipv64:1.1.0` aus `mavenLocal()`.
+`./gradlew :ipv64:publishToMavenLocal` als `de.sr:ipv64:2.0.0` aus `mavenLocal()`.
 
 ## Schnellstart
 
@@ -370,12 +370,16 @@ val pem: String = node.certificates.chain(certId)
 | `onlineChecks` | Online-Checks über ipv64.net |
 | `maintenance` | Wartungsfenster |
 | `statusPages` | Status-Seiten inkl. Hinweisen und Logo |
-| `docker` / `proxmox` | Docker- und Proxmox-VE-Monitoring |
 | `channels` | Benachrichtigungskanäle und Zustellungen |
 | `dynDns` | DynDNS-Updater der Node |
-| `dns64` | DNS64-Resolver (`records`, `groups`, `forwards`, `rewrites`, `zones`) |
+| `dns64` | DNS64-Resolver (`records`, `groups`, `forwards`, `rewrites`, `zones`, `dhcp`) |
 | `proxy` | PROXY64 (`hosts`, `streams`, `accessLists`), Schutz, Limits, Online-Veröffentlichung |
 | `honeypot` | Honeypot64-Sensor |
+| `sonar64` | Sonar64-Latenzmessungen zwischen Nodes |
+| `update` | Selbst-Update der Node |
+| `ipv64Channels` | E-Mail-, SMS- und App-Kanäle bei ipv64.net |
+| `users` | Benutzer der Node und eigenes Profil |
+| `mcp` | MCP-Schalter, Bereiche und Schlüssel |
 
 Unterschiede zur Cloud-API:
 
