@@ -34,6 +34,7 @@ public enum class CertificateStatus(override val value: String) : ApiValue {
 public enum class CertificateKeyType(override val value: String) : ApiValue {
     @SerialName("ecdsa") ECDSA("ecdsa"),
     @SerialName("rsa") RSA("rsa"),
+    @SerialName("rsa4096") RSA4096("rsa4096"),
 }
 
 /** Download format of `GET /certs/{id}/bundle`. */
@@ -292,6 +293,15 @@ public data class CA(
     val certificates: Int? = null,
     /** Creation time. */
     @SerialName("created_at") val createdAt: IsoInstant? = null,
+)
+
+/** Body of `PUT /certs/{id}`; at least one field is needed. A new [keyType] applies at the next renewal. */
+@Serializable
+public data class UpdateCertificateRequest(
+    /** Renew automatically. */
+    @SerialName("auto_renew") val autoRenew: Boolean? = null,
+    /** Key type (self-signed and Let's Encrypt sources). */
+    @SerialName("key_type") val keyType: CertificateKeyType? = null,
 )
 
 /** Body of `POST /cas` (valid for 10 years). */

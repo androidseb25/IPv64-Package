@@ -358,4 +358,13 @@ class HoneypotApiTest : Node64ApiTestBaseA() {
         assertEquals("DELETE", request.method)
         assertEquals("/api/honeypot/watch/4", request.target)
     }
+
+    @Test
+    fun `stats decodes top_hosts`() = test {
+        enqueueJson("""{"top_hosts":[{"key":"a.example.com","count":4,"last":"2026-10-28T09:00:00Z"}]}""")
+        val h = node().honeypot.stats().topHosts.single()
+        takeRequest()
+        assertEquals("a.example.com", h.key)
+        assertEquals(4L, h.count)
+    }
 }

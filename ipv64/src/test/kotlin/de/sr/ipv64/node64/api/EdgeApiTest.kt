@@ -112,4 +112,13 @@ class EdgeApiTest : Node64ApiTestBaseB() {
         assertEquals(js("""{"name":"n","public":false,"cert":"auto"}"""), expectRequest("PUT", "/api/edge/ui").jsonBody())
         assertEquals(false, u.isPublic)
     }
+
+    @Test
+    fun `proxy_protocol_peers and proxy_peers`() = test<Unit> {
+        enqueueJson("""{"config":{"proxy_protocol_peers":true},"proxy_peers":["10.0.0.2"]}""")
+        val e = edge.update(EdgeConfigRequest(proxyProtocolPeers = true))
+        assertEquals(js("""{"proxy_protocol_peers":true}"""), expectRequest("PUT", "/api/edge").jsonBody())
+        assertEquals(true, e.config?.proxyProtocolPeers)
+        assertEquals(listOf("10.0.0.2"), e.proxyPeers)
+    }
 }

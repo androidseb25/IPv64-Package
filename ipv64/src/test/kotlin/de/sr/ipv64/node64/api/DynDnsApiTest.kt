@@ -312,4 +312,15 @@ class DynDnsApiTest : Node64ApiTestBaseA() {
         request.assertJsonBody("""{"preferred_node":"n1"}""")
         assertEquals("n1", r.preferredNode)
     }
+
+    @Test
+    fun `prefix_iface is sent on update and decoded`() = test {
+        enqueueJson("""{"id":1,"prefix_iface":"eth2"}""")
+        val t = node().dynDns.updateTarget(1, UpdateDynDnsTargetRequest(prefixIface = "eth2"))
+        val r = takeRequest()
+        assertEquals("PUT", r.method)
+        assertEquals("/api/dyndns/targets/1", r.target)
+        r.assertJsonBody("""{"prefix_iface":"eth2"}""")
+        assertEquals("eth2", t.prefixIface)
+    }
 }

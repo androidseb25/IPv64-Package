@@ -5,6 +5,13 @@ import de.sr.ipv64.model.IsoInstant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/** Kind of an outline entry in a status page group (instead of a check). */
+@Serializable
+public enum class StatusItemKind(override val value: String) : ApiValue {
+    @SerialName("heading") HEADING("heading"),
+    @SerialName("divider") DIVIDER("divider"),
+}
+
 /** Layout of a status page. */
 @Serializable
 public enum class StatusPageLayout(override val value: String) : ApiValue {
@@ -102,6 +109,8 @@ public data class StatusItem(
     val token: String? = null,
     /** Display name; empty = name of the check. */
     val label: String? = null,
+    /** Outline entry (heading/divider) instead of a check; missing = check. */
+    val kind: StatusItemKind? = null,
 )
 
 /** Group in a status page request. */
@@ -116,10 +125,12 @@ public data class StatusGroupRequest(
 /** Entry in a status page request. */
 @Serializable
 public data class StatusItemRequest(
-    /** Check token. */
-    val token: String,
-    /** Display name (max. 120 characters); empty = name of the check. */
+    /** Check token; omit for an outline entry ([kind]). */
+    val token: String? = null,
+    /** Display name (max. 120 characters); empty = name of the check; text of a heading. */
     val label: String? = null,
+    /** Outline entry (heading/divider) instead of a check. */
+    val kind: StatusItemKind? = null,
 )
 
 /**

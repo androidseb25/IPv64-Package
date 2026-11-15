@@ -157,6 +157,23 @@ public class Dns64Api internal constructor(private val transport: HttpTransport)
     public suspend fun replaceDenylist(domains: List<String>): DNS64DenylistReplaceResult =
         transport.json(Method.PUT, ApiPath("dns64", "denylist"), body = transport.body(DNS64DenylistReplaceRequest(domains)))
 
+    /** In which lists a [domain] is found (blocklists, own rules, allow lists, group rules, services). `GET /dns64/lookup` */
+    public suspend fun lookup(domain: String): DNS64Lookup =
+        transport.json(Method.GET, ApiPath("dns64", "lookup"), query("domain" to domain))
+
+    /** Own filter rules (AdGuard/Adblock style), one per line. `GET /dns64/rules` */
+    public suspend fun rules(): DNS64Rules =
+        transport.json(Method.GET, ApiPath("dns64", "rules"))
+
+    /**
+     * Replaces own blocks and allows with [rules] (`||example.com^` blocks, `@@||example.com^` allows).
+     * If all lines are invalid the server answers 422 and changes nothing; the result is then only in [Node64ApiException.rawBody].
+     *
+     * `PUT /dns64/rules`
+     */
+    public suspend fun replaceRules(rules: List<String>): DNS64RulesResult =
+        transport.json(Method.PUT, ApiPath("dns64", "rules"), body = transport.body(DNS64RulesRequest(rules)))
+
     /** Docker integration state with containers. `GET /dns64/docker` */
     public suspend fun docker(): DNS64DockerState =
         transport.json(Method.GET, ApiPath("dns64", "docker"))

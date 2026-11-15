@@ -8,6 +8,7 @@ import de.sr.ipv64.node64.model.Monitor64AgentHostState
 import de.sr.ipv64.node64.model.Monitor64MaintInput
 import de.sr.ipv64.node64.model.Monitor64MaintInputMode
 import de.sr.ipv64.node64.model.Monitor64MaintenanceStatus
+import de.sr.ipv64.node64.model.Monitor64OverviewRecentKind
 import de.sr.ipv64.node64.model.Monitor64ServiceState
 import de.sr.ipv64.node64.model.Monitor64ProblemAction
 import de.sr.ipv64.node64.model.Monitor64ProblemActionAction
@@ -40,7 +41,7 @@ class Monitor64ApiTest : Node64ApiTestBaseA() {
             """{"counts":{"ok":3,"crit":1},"hosts":[{"uid":"h1","view":"maintenance","state":"warn","new":2,
             "maint":{"reason":"x","end":"2026-11-01T02:00:00Z"},"meters":[{"label":"cpu","value":12.5,"state":"ok"}]}],
             "problems":[{"host_uid":"h1","state":"crit","acked":true}],
-            "recent":[{"kind":"maint_end","by":{"kind":"api","name":"k"}}],"open_unacked":1,"running":true}""",
+            "recent":[{"kind":"migrated","key":"vm:101","by":{"kind":"api","name":"k"}}],"open_unacked":1,"running":true}""",
         )
         val o = node().monitor64.overview()
         val r = takeRequest()
@@ -53,6 +54,8 @@ class Monitor64ApiTest : Node64ApiTestBaseA() {
         assertTrue(o.problems[0].acked == true)
         assertEquals(Monitor64ActorKind.API, o.recent[0].by?.kind)
         assertEquals(1L, o.openUnacked)
+        assertEquals(Monitor64OverviewRecentKind.MIGRATED, o.recent[0].kind)
+        assertEquals("vm:101", o.recent[0].key)
     }
 
     @Test
@@ -79,11 +82,12 @@ class Monitor64ApiTest : Node64ApiTestBaseA() {
 
     @Test
     fun `nodeaddr sends target`() = test {
-        enqueueJson("""{"addr":"10.0.0.1"}""")
+        enqueueJson("""{"addr":"10.0.0.1","bridge":true}""")
         val a = node().monitor64.nodeAddr("10.0.0.2")
         val r = takeRequest()
         assertEquals("/api/monitor64/nodeaddr?target=10.0.0.2", r.target)
         assertEquals("10.0.0.1", a.addr)
+        assertEquals(true, a.bridge)
     }
 
     @Test

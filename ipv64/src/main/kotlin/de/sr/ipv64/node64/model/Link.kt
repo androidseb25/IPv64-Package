@@ -108,10 +108,12 @@ public data class LinkConflict(
     @SerialName("server_revision") val serverRevision: Long? = null,
     /** Creation time. */
     @SerialName("created_at") val createdAt: IsoInstant? = null,
+    /** Error. */
+    val error: String? = null,
 ) {
     override fun toString(): String =
         "LinkConflict(id=$id, entity=$entity, entityId=$entityId, name=$name, localOp=$localOp, local=<redacted>, " +
-            "server=<redacted>, serverRevision=$serverRevision, createdAt=$createdAt)"
+            "server=<redacted>, serverRevision=$serverRevision, createdAt=$createdAt, error=$error)"
 }
 
 /** Which version wins when resolving a conflict. */

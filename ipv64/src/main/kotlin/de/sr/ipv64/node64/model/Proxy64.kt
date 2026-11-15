@@ -293,6 +293,10 @@ public data class CDNAdvanced(
     @SerialName("target_http") val targetHttp: TargetHttp? = null,
     /** Do not check the target for reachability (proxy host, TLS passthrough), e.g. for services without a web UI: no "unreachable" display, no `node64_cdn64_host_target_up` metric. */
     @SerialName("no_probe") val noProbe: Boolean? = null,
+    /** Nextcloud: answer `/.well-known/caldav` and `/.well-known/carddav` with 301 to `/remote.php/dav/` (proxy hosts only). */
+    @SerialName("nextcloud_dav") val nextcloudDav: Boolean? = null,
+    /** Read-only: checksum of the response headers last taken over from Traefik labels. */
+    @SerialName("label_headers") val labelHeaders: String? = null,
 )
 
 /** Optionally request a certificate for all domains along with the host (runs in the background). */
@@ -791,6 +795,12 @@ public data class ProxySettings(
     @SerialName("log_days") val logDays: Int? = null,
     /** Anonymize the log. */
     val anonymize: Boolean? = null,
+    /** Write an access log file. */
+    @SerialName("access_file") val accessFile: Boolean? = null,
+    /** Maximum size of the access log file in MB. */
+    @SerialName("access_file_mb") val accessFileMb: Int? = null,
+    /** Path of the access log file (read-only). */
+    @SerialName("access_file_path") val accessFilePath: String? = null,
 )
 
 /** Body of `PUT /cdn64/settings`. */
@@ -800,6 +810,10 @@ public data class UpdateProxySettingsRequest(
     @SerialName("log_days") val logDays: Int? = null,
     /** Anonymize the log. */
     val anonymize: Boolean? = null,
+    /** Write an access log file. */
+    @SerialName("access_file") val accessFile: Boolean? = null,
+    /** Maximum size of the access log file in MB. */
+    @SerialName("access_file_mb") val accessFileMb: Int? = null,
 )
 
 /** A blocklist. */
@@ -867,6 +881,38 @@ public data class CDNBlocklistAiBots(
     val blocked: Long? = null,
 )
 
+/** Location data (DB-IP via ipv64.net) the country restriction decides by. */
+@Serializable
+public data class CDNGeoData(
+    /** Data is loaded. */
+    val loaded: Boolean? = null,
+    /** IPv4 ranges. */
+    @SerialName("ranges_v4") val rangesV4: Long? = null,
+    /** IPv6 ranges. */
+    @SerialName("ranges_v6") val rangesV6: Long? = null,
+    /** Memory use in bytes. */
+    val bytes: Long? = null,
+    /** Last update. */
+    val updated: IsoInstant? = null,
+    /** Error. */
+    val error: String? = null,
+)
+
+/** Response of `GET /cdn64/geo/lookup`. */
+@Serializable
+public data class CDNGeoLookup(
+    /** Looked-up address. */
+    val ip: String? = null,
+    /** ISO country code, empty = none. */
+    val country: String? = null,
+    /** Country name. */
+    val name: String? = null,
+    /** `location`, `registry` or empty. */
+    val source: String? = null,
+    /** Location data is loaded. */
+    @SerialName("location_data") val locationData: Boolean? = null,
+)
+
 /** State of the ipv64 blocklists. */
 @Serializable
 public data class CDNBlocklists(
@@ -890,6 +936,8 @@ public data class CDNBlocklists(
     val deny: List<String> = emptyList(),
     /** Rejected by the own blocklist since start. */
     val denied: Long? = null,
+    /** Location data the country restriction decides by. */
+    @SerialName("geo_data") val geoData: CDNGeoData? = null,
 )
 
 /** Body of `PUT /cdn64/blocklists`. [token] is redacted in [toString]. */

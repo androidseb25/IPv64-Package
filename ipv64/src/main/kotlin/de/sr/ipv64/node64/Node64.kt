@@ -3,6 +3,7 @@ package de.sr.ipv64.node64
 import de.sr.ipv64.IPv64Exception
 import de.sr.ipv64.internal.HttpTransport
 import de.sr.ipv64.internal.SharedOkHttpClient
+import de.sr.ipv64.node64.api.AuthApi
 import de.sr.ipv64.node64.api.CertificatesApi
 import de.sr.ipv64.node64.api.ChannelsApi
 import de.sr.ipv64.node64.api.ChecksApi
@@ -10,7 +11,10 @@ import de.sr.ipv64.node64.api.ClusterApi
 import de.sr.ipv64.node64.api.Dns64Api
 import de.sr.ipv64.node64.api.DynDnsApi
 import de.sr.ipv64.node64.api.EdgeApi
+import de.sr.ipv64.node64.api.EnvironmentApi
+import de.sr.ipv64.node64.api.GroupsApi
 import de.sr.ipv64.node64.api.HoneypotApi
+import de.sr.ipv64.node64.api.Ipam64Api
 import de.sr.ipv64.node64.api.Ipv64ChannelsApi
 import de.sr.ipv64.node64.api.LinkApi
 import de.sr.ipv64.node64.api.MaintenanceApi
@@ -136,6 +140,18 @@ public class Node64(
     /** Monitor64: hosts, services, thresholds, problems, notification, maintenance, agent and cluster. */
     public val monitor64: Monitor64Api = Monitor64Api(transport)
 
+    /** User groups of this node (role and AD/LDAP/SSO mapping; not DNS64 groups). */
+    public val groups: GroupsApi = GroupsApi(transport)
+
+    /** Sign-in settings (mandatory 2FA, AD/LDAP, SSO group creation). */
+    public val auth: AuthApi = AuthApi(transport)
+
+    /** IPAM64: prefixes, fixed addresses, ranges, free addresses, scan and conflicts. */
+    public val ipam64: Ipam64Api = Ipam64Api(transport)
+
+    /** Environment: this node, cluster members, added nodes and access keys. */
+    public val environment: EnvironmentApi = EnvironmentApi(transport)
+
     /**
      * Returns a client that writes [actor] as the actor name into the node's audit log
      * (`X-Agent-Actor`). The returned client shares the connection pool with this one.
@@ -152,6 +168,6 @@ public class Node64(
 
     public companion object {
         /** Default `User-Agent` header. */
-        public const val DEFAULT_USER_AGENT: String = "IPv64-Android/2.1.0 (Node64)"
+        public const val DEFAULT_USER_AGENT: String = "IPv64-Android/2.2.0 (Node64)"
     }
 }

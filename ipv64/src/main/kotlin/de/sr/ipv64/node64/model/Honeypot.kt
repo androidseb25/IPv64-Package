@@ -487,6 +487,8 @@ public data class Honeypot64Stats(
     @SerialName("country_unknown") val countryUnknown: Long? = null,
     /** Events per decoy. */
     @SerialName("by_decoy") val byDecoy: List<Honeypot64Count> = emptyList(),
+    /** Requested domains / subdomains (Host header or SNI, without port, lower case). */
+    @SerialName("top_hosts") val topHosts: List<Honeypot64Count> = emptyList(),
 )
 
 /** Event recorded by the honeypot (credentials of attackers in plain text). */

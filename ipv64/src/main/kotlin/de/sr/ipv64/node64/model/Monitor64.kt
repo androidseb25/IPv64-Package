@@ -203,6 +203,8 @@ public data class Monitor64PushToken(
 @Serializable
 public data class Monitor64NodeAddr(
     val addr: String? = null,
+    /** Node in the Docker bridge network: the host sees the address of the Docker host. */
+    val bridge: Boolean? = null,
 )
 
 // ---- Overview -------------------------------------------------------------------------------
@@ -318,6 +320,7 @@ public enum class Monitor64OverviewRecentKind(override val value: String) : ApiV
     @SerialName("resolved") RESOLVED("resolved"),
     @SerialName("maint") MAINT("maint"),
     @SerialName("maint_end") MAINT_END("maint_end"),
+    @SerialName("migrated") MIGRATED("migrated"),
 }
 
 /** Recently resolved problem or maintenance. */
@@ -330,6 +333,8 @@ public data class Monitor64OverviewRecent(
     val text: String? = null,
     val by: Monitor64Actor? = null,
     val at: IsoInstant? = null,
+    /** Service (e.g. `vm:101` of a migrated Proxmox guest). */
+    val key: String? = null,
 )
 
 /** Overview of all hosts. */
@@ -424,6 +429,11 @@ public enum class Monitor64AccessType(override val value: String) : ApiValue {
     @SerialName("unraid") UNRAID("unraid"),
     @SerialName("redfish") REDFISH("redfish"),
     @SerialName("snmp") SNMP("snmp"),
+    @SerialName("fritzbox") FRITZBOX("fritzbox"),
+    @SerialName("mailcow") MAILCOW("mailcow"),
+    @SerialName("mikrotik") MIKROTIK("mikrotik"),
+    @SerialName("pmg") PMG("pmg"),
+    @SerialName("unifi") UNIFI("unifi"),
 }
 
 /** NUT TLS mode. */
@@ -567,10 +577,14 @@ public data class Monitor64AccessConfig(
     val traps: Boolean? = null,
     /** SNMPv3: engine ID of the trap sender (hex). */
     @SerialName("trap_engine_id") val trapEngineId: String? = null,
+    /** UniFi: key of the site (empty = `default`). */
+    val site: String? = null,
+    /** PBS: maximum age of the last backup per group in hours (1..8760; empty = 26). */
+    @SerialName("backup_max_age_h") val backupMaxAgeH: Int? = null,
 ) {
     override fun toString(): String =
         "Monitor64AccessConfig(port=$port, user=$user, url=$url, node=$node, mode=$mode, token=<redacted>, " +
-            "metrics=$metrics, snmpVersion=$snmpVersion, custom=$custom, profiles=$profiles, traps=$traps)"
+            "metrics=$metrics, snmpVersion=$snmpVersion, custom=$custom, profiles=$profiles, traps=$traps, site=$site, backupMaxAgeH=$backupMaxAgeH)"
 }
 
 /**
@@ -670,6 +684,12 @@ public data class Monitor64TestResult(
     val profiles: List<Monitor64TestProfile> = emptyList(),
     /** SNMP: what is queried. */
     val queries: List<String> = emptyList(),
+    /** Certificate no longer matches the stored `pin`; [fingerprint] names the new one. */
+    @SerialName("cert_changed") val certChanged: Boolean? = null,
+    /** Type of the SSH host key shown (e.g. `ssh-ed25519`). */
+    @SerialName("key_type") val keyType: String? = null,
+    /** Peer actually connected (IP:port; SSH and agent), even if the login fails. */
+    val peer: String? = null,
 )
 
 // ---- Problems -------------------------------------------------------------------------------
@@ -745,6 +765,8 @@ public data class Monitor64Problem(
     val duration: Long? = null,
     /** Names of the channels. */
     val channels: List<String> = emptyList(),
+    /** Open and the host is in a maintenance window. */
+    val maint: Boolean? = null,
 )
 
 /** Counts of a [Monitor64ProblemList] (in the range, without the other filters). */

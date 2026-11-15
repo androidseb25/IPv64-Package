@@ -26,6 +26,12 @@ public enum class Monitor64HostKind(override val value: String) : ApiValue {
     @SerialName("prom") PROM("prom"),
     @SerialName("snmp") SNMP("snmp"),
     @SerialName("nas") NAS("nas"),
+    @SerialName("fritzbox") FRITZBOX("fritzbox"),
+    @SerialName("mailcow") MAILCOW("mailcow"),
+    @SerialName("mikrotik") MIKROTIK("mikrotik"),
+    @SerialName("pmg") PMG("pmg"),
+    @SerialName("raspberrypi") RASPBERRYPI("raspberrypi"),
+    @SerialName("unifi") UNIFI("unifi"),
     @SerialName("") NONE(""),
 }
 
@@ -255,6 +261,10 @@ public data class Monitor64Service(
     @SerialName("show_only") val showOnly: Boolean? = null,
     val acked: Boolean? = null,
     val metrics: List<Monitor64Metric> = emptyList(),
+    /** More values available: `smart` = all SMART values via `GET /monitor64/hosts/{uid}/smart`. */
+    val detail: Monitor64ServiceDetail? = null,
+    /** Rules whose condition holds but which report only after their duration. */
+    val pending: List<Monitor64ServicePending> = emptyList(),
 )
 
 /** A service on the host page. */
@@ -286,6 +296,26 @@ public data class Monitor64HostService(
     val levels: Monitor64Levels? = null,
     /** All rule kinds of the service. */
     val rules: List<Monitor64Levels> = emptyList(),
+    val detail: Monitor64ServiceDetail? = null,
+    val pending: List<Monitor64ServicePending> = emptyList(),
+)
+
+/** More values of a service. */
+@Serializable
+public enum class Monitor64ServiceDetail(override val value: String) : ApiValue {
+    @SerialName("smart") SMART("smart"),
+}
+
+/** State rule of a service that holds but reports only after its duration (e.g. security updates after 24 h). */
+@Serializable
+public data class Monitor64ServicePending(
+    /** Rule kind, e.g. `updates.security`. */
+    val kind: String? = null,
+    /** Level that applies after the duration (warn, crit). */
+    val state: String? = null,
+    val since: IsoInstant? = null,
+    /** From then on the level applies. */
+    val at: IsoInstant? = null,
 )
 
 /** A stored service. */
@@ -399,6 +429,8 @@ public data class Monitor64HostInput(
     val paused: Boolean? = null,
     /** Missing/`null` = unchanged (new: true). */
     @SerialName("agent_autoupdate") val agentAutoupdate: Boolean? = null,
+    /** PUT with a new address only: remove secrets that would otherwise be sent to the new address (else 400 `address_secret`). */
+    @SerialName("clear_secrets") val clearSecrets: Boolean? = null,
 )
 
 /** Body of `POST /monitor64/hosts`: a host with accesses (at most 8, secrets redacted by [Monitor64AccessInput]), discovered services and services to adopt. */
@@ -418,6 +450,7 @@ public data class Monitor64HostCreate(
     val services: List<Monitor64DiscoveredService>? = null,
     /** Keys of the services to adopt right away. */
     val adopt: List<String>? = null,
+    @SerialName("clear_secrets") val clearSecrets: Boolean? = null,
 )
 
 /** Rule change for one kind in [Monitor64ServiceUpdate.rules]. */
@@ -531,4 +564,63 @@ public data class Monitor64HostTraps(
     val rejected: Int? = null,
     @SerialName("reject_reason") val rejectReason: String? = null,
     @SerialName("rejected_at") val rejectedAt: IsoInstant? = null,
+)
+
+/** One ATA attribute of [Monitor64SmartData]. */
+@Serializable
+public data class Monitor64SmartAttr(
+    val id: Int? = null,
+    val name: String? = null,
+    /** Normalized value. */
+    val value: Int? = null,
+    val worst: Int? = null,
+    /** Threshold (0 = none). */
+    val thresh: Int? = null,
+    /** Raw value. */
+    val raw: String? = null,
+    /** Below the threshold: `now` or `past`. */
+    val failed: String? = null,
+)
+
+/** NVMe, SCSI or single value of [Monitor64SmartData]. */
+@Serializable
+public data class Monitor64SmartValue(
+    /** Known value as in `smartctl -j`, e.g. `available_spare`. */
+    val key: String? = null,
+    /** Otherwise the name from the device. */
+    val name: String? = null,
+    val value: Double? = null,
+    /** %, °C, B, h, min, hex or empty. */
+    val unit: String? = null,
+    /** Value as text if it is not a number. */
+    val text: String? = null,
+)
+
+/** SMART values of a disk. */
+@Serializable
+public data class Monitor64SmartData(
+    /** ata, nvme, scsi … */
+    val type: String? = null,
+    val model: String? = null,
+    val serial: String? = null,
+    val firmware: String? = null,
+    /** Bytes. */
+    val size: Long? = null,
+    /** Overall health (missing = unknown). */
+    val passed: Boolean? = null,
+    /** Time of the measurement. */
+    val at: IsoInstant? = null,
+    /** The source delivers only the evaluated values, not all attributes. */
+    val partial: Boolean? = null,
+    /** ATA attributes. */
+    val attrs: List<Monitor64SmartAttr> = emptyList(),
+    val values: List<Monitor64SmartValue> = emptyList(),
+)
+
+/** Response of `GET /monitor64/hosts/{uid}/smart`. */
+@Serializable
+public data class Monitor64Smart(
+    /** Key of the service. */
+    val key: String? = null,
+    val smart: Monitor64SmartData? = null,
 )

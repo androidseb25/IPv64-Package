@@ -2,6 +2,7 @@ package de.sr.ipv64.node64.api
 
 import de.sr.ipv64.node64.model.StatusPageItemsRequest
 import de.sr.ipv64.node64.model.StatusGroupRequest
+import de.sr.ipv64.node64.model.StatusItemKind
 import de.sr.ipv64.node64.model.StatusItemRequest
 import de.sr.ipv64.node64.model.StatusNoticeInput
 import de.sr.ipv64.node64.model.StatusNoticeLevel
@@ -246,5 +247,17 @@ class StatusPagesApiTest : Node64ApiTestBaseA() {
         assertEquals("GET", request.method)
         assertEquals("/api/status-pages/2/view?lang=de", request.target)
         assertEquals("ok", view["status"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `create sends outline items with kind`() = test {
+        enqueueJson(pageJson, code = 201)
+        node().statusPages.create(
+            StatusPageRequest(
+                title = "S",
+                groups = listOf(StatusGroupRequest("G", listOf(StatusItemRequest(label = "Head", kind = StatusItemKind.HEADING)))),
+            ),
+        )
+        takeRequest().assertJsonBody("""{"title":"S","groups":[{"name":"G","items":[{"label":"Head","kind":"heading"}]}]}""")
     }
 }

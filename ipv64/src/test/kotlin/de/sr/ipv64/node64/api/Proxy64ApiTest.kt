@@ -422,4 +422,38 @@ class Proxy64ApiTest : Node64ApiTestBaseB() {
             expectRequest("PUT", "/api/cdn64/docker").jsonBody(),
         )
     }
+
+    @Test
+    fun `geoLookup gets with ip and lang`() = test<Unit> {
+        enqueueJson("""{"ip":"3.64.10.10","country":"DE","name":"Deutschland","source":"location","location_data":true}""")
+        val g = proxy.geoLookup("3.64.10.10", "de")
+        val r = expectRequest("GET", "/api/cdn64/geo/lookup?ip=3.64.10.10&lang=de")
+        assertEquals("DE", g.country)
+        assertEquals("location", g.source)
+        assertEquals(true, g.locationData)
+    }
+
+    @Test
+    fun `settings access file and blocklists geo_data`() = test<Unit> {
+        enqueueJson("""{"log_days":7,"access_file":true,"access_file_mb":50,"access_file_path":"/var/log/a.log"}""")
+        val s = proxy.updateSettings(UpdateProxySettingsRequest(accessFile = true, accessFileMb = 50))
+        assertEquals(js("""{"access_file":true,"access_file_mb":50}"""), expectRequest("PUT", "/api/cdn64/settings").jsonBody())
+        assertEquals("/var/log/a.log", s.accessFilePath)
+        assertEquals(50, s.accessFileMb)
+        enqueueJson("""{"geo_data":{"loaded":true,"ranges_v4":10,"ranges_v6":5,"bytes":1024,"updated":"2026-10-28T01:00:00Z","error":""}}""")
+        val g = proxy.blocklists().geoData!!
+        expectRequest("GET", "/api/cdn64/blocklists")
+        assertEquals(true, g.loaded)
+        assertEquals(10L, g.rangesV4)
+        assertEquals(1024L, g.bytes)
+        assertEquals(Instant.parse("2026-10-28T01:00:00Z"), g.updated)
+    }
+
+    @Test
+    fun `advanced nextcloud_dav and label_headers decode`() = test<Unit> {
+        val a = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString<CDNAdvanced>("""{"nextcloud_dav":true,"label_headers":"abc"}""")
+        assertEquals(true, a.nextcloudDav)
+        assertEquals("abc", a.labelHeaders)
+    }
 }

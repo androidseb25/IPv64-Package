@@ -570,4 +570,11 @@ class CertificatesApiTest : Node64ApiTestBaseB() {
         assertEquals(false, r.ok)
         expectRequest("POST", "/api/certs/dns-check/run")
     }
+
+    @Test
+    fun `update puts key_type`() = test<Unit> {
+        enqueueJson(certJson)
+        assertCert(certs.update(7, UpdateCertificateRequest(keyType = CertificateKeyType.RSA4096)))
+        assertEquals(js("""{"key_type":"rsa4096"}"""), expectRequest("PUT", "/api/certs/7").jsonBody())
+    }
 }

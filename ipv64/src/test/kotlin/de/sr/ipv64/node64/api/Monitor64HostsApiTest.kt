@@ -167,4 +167,53 @@ class Monitor64HostsApiTest : Node64ApiTestBaseB() {
         assertEquals("1.4.0", hosts.updateAgent("h1").version)
         expectRequest("POST", "/api/monitor64/hosts/h1/agent/update")
     }
+
+    @Test
+    fun `smart sends key and decodes values`() = test<Unit> {
+        enqueueJson(
+            """{"key":"disk:S1","smart":{"type":"ata","model":"M","size":1000,"passed":true,"at":"2026-11-01T02:00:00Z","partial":false,
+            "attrs":[{"id":5,"name":"Reallocated","value":100,"worst":100,"thresh":10,"raw":"0","failed":"past"}],
+            "values":[{"key":"available_spare","value":99.5,"unit":"%"}]}}""",
+        )
+        val s = hosts.smart("h1", "disk:S1")
+        expectRequest("GET", "/api/monitor64/hosts/h1/smart?key=disk%3AS1")
+        assertEquals("ata", s.smart?.type)
+        assertEquals(true, s.smart?.passed)
+        assertEquals("past", s.smart?.attrs?.get(0)?.failed)
+        assertEquals(99.5, s.smart?.values?.get(0)?.value!!, 0.0)
+    }
+
+    @Test
+    fun `new access types config fields and host kinds are sent`() = test<Unit> {
+        enqueueJson(accessJson)
+        hosts.createAccess(
+            "h1",
+            Monitor64AccessInput(
+                type = Monitor64AccessType.UNIFI,
+                config = Monitor64AccessConfig(site = "s1", backupMaxAgeH = 48),
+            ),
+        )
+        assertEquals(
+            js("""{"type":"unifi","config":{"site":"s1","backup_max_age_h":48}}"""),
+            expectRequest("POST", "/api/monitor64/hosts/h1/access").jsonBody(),
+        )
+        enqueueJson("""{"uid":"h1"}""")
+        hosts.update("h1", Monitor64HostInput("n", "a", Monitor64HostKind.RASPBERRYPI, clearSecrets = true))
+        assertEquals(
+            js("""{"name":"n","address":"a","kind":"raspberrypi","clear_secrets":true}"""),
+            expectRequest("PUT", "/api/monitor64/hosts/h1").jsonBody(),
+        )
+    }
+
+    @Test
+    fun `service detail and pending decode`() = test<Unit> {
+        enqueueJson(
+            """{"host":{"uid":"h1"},"services":[{"key":"disk:S1","detail":"smart",
+            "pending":[{"kind":"updates.security","state":"warn","since":"2026-11-01T00:00:00Z","at":"2026-11-02T00:00:00Z"}]}]}""",
+        )
+        val d = hosts.get("h1")
+        expectRequest("GET", "/api/monitor64/hosts/h1")
+        assertEquals(Monitor64ServiceDetail.SMART, d.services[0].detail)
+        assertEquals("updates.security", d.services[0].pending[0].kind)
+    }
 }

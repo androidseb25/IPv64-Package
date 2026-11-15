@@ -71,6 +71,10 @@ public class Monitor64HostsApi internal constructor(private val transport: HttpT
     public suspend fun resetHostKey(uid: String): Monitor64Ok =
         transport.json(Method.POST, ApiPath("monitor64", "access", uid, "hostkey-reset"))
 
+    /** Last SMART values of a disk (service with `detail = smart`); 404 until read. `GET /monitor64/hosts/{uid}/smart` */
+    public suspend fun smart(uid: String, key: String): Monitor64Smart =
+        transport.json(Method.GET, ApiPath("monitor64", "hosts", uid, "smart"), query("key" to key))
+
     /** Traps of a host. `GET /monitor64/hosts/{uid}/traps` */
     public suspend fun traps(uid: String): Monitor64HostTraps =
         transport.json(Method.GET, ApiPath("monitor64", "hosts", uid, "traps"))

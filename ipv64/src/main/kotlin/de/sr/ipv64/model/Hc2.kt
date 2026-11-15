@@ -9,7 +9,7 @@ import kotlinx.serialization.json.JsonObject
 // Checks
 // ---------------------------------------------------------------------------------------------
 
-/** Type of a Healthchecks 2.0 check. */
+/** Type of a Healthchecks 2.0 check. [DOCKER] and [PROXMOX] only appear on existing checks (moved to Monitor64, can't be created). */
 @Serializable
 public enum class Hc2CheckType(override val value: String) : ApiValue {
     @SerialName("http") HTTP("http"),
@@ -22,6 +22,8 @@ public enum class Hc2CheckType(override val value: String) : ApiValue {
     @SerialName("cert") CERT("cert"),
     @SerialName("push") PUSH("push"),
     @SerialName("whois") WHOIS("whois"),
+    @SerialName("docker") DOCKER("docker"),
+    @SerialName("proxmox") PROXMOX("proxmox"),
 }
 
 /** IP mode of a check. */

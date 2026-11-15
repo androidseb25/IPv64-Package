@@ -102,6 +102,8 @@ public data class DynDNSTarget(
     @SerialName("last_error_at") val lastErrorAt: IsoInstant? = null,
     /** Comparison with the public DNS. */
     @SerialName("dns_state") val dnsState: DynDnsDnsState? = null,
+    /** Interface the prefix is taken from (mode6 `prefix`/`suffix`). */
+    @SerialName("prefix_iface") val prefixIface: String? = null,
 )
 
 /** Body of `POST /dyndns/targets`. [token] is redacted in [toString]. */
@@ -131,11 +133,13 @@ public data class DynDNSTargetInput(
     val iface: String? = null,
     /** Target is switched on. */
     val enabled: Boolean? = null,
+    /** Take the prefix from this interface (mode6 `prefix`/`suffix`) instead of the externally seen IPv6. */
+    @SerialName("prefix_iface") val prefixIface: String? = null,
 ) {
     override fun toString(): String =
         "DynDNSTargetInput(domain=$domain, token=<redacted>, mode4=$mode4, mode6=$mode6, host=$host, " +
             "tokenKind=$tokenKind, recordId=$recordId, fixed4=$fixed4, fixed6=$fixed6, suffix6=$suffix6, " +
-            "iface=$iface, enabled=$enabled)"
+            "iface=$iface, enabled=$enabled, prefixIface=$prefixIface)"
 }
 
 /**
@@ -168,11 +172,13 @@ public data class UpdateDynDnsTargetRequest(
     @SerialName("token_kind") val tokenKind: DynDnsTokenKind? = null,
     /** Record ID. */
     @SerialName("record_id") val recordId: Long? = null,
+    /** Take the prefix from this interface (mode6 `prefix`/`suffix`). */
+    @SerialName("prefix_iface") val prefixIface: String? = null,
 ) {
     override fun toString(): String =
         "UpdateDynDnsTargetRequest(token=${if (token == null) "null" else "<redacted>"}, mode4=$mode4, mode6=$mode6, " +
             "fixed4=$fixed4, fixed6=$fixed6, suffix6=$suffix6, iface=$iface, enabled=$enabled, domain=$domain, host=$host, " +
-            "tokenKind=$tokenKind, recordId=$recordId)"
+            "tokenKind=$tokenKind, recordId=$recordId, prefixIface=$prefixIface)"
 }
 
 /** Settings of the DynDNS module (response of `GET /dyndns/settings`). */

@@ -22,6 +22,7 @@ import de.sr.ipv64.node64.model.DNSAccount
 import de.sr.ipv64.node64.model.DnsProvider
 import de.sr.ipv64.node64.model.ImportCaRequest
 import de.sr.ipv64.node64.model.UpdateCertAccountRequest
+import de.sr.ipv64.node64.model.UpdateCertificateRequest
 import de.sr.ipv64.node64.model.UpdateDnsAccountRequest
 import de.sr.ipv64.node64.model.UploadCertificateRequest
 import de.sr.ipv64.node64.model.DnsCheckResolvers
@@ -95,6 +96,10 @@ public class CertificatesApi internal constructor(private val transport: HttpTra
     /** Switches automatic renewal. `PUT /certs/{id}` */
     public suspend fun setAutoRenew(id: Long, autoRenew: Boolean): Certificate =
         transport.json(Method.PUT, ApiPath("certs", id.toString()), body = transport.body(AutoRenewBody(autoRenew)))
+
+    /** Changes automatic renewal and/or key type. `PUT /certs/{id}` */
+    public suspend fun update(id: Long, request: UpdateCertificateRequest): Certificate =
+        transport.json(Method.PUT, ApiPath("certs", id.toString()), body = transport.body(request))
 
     /** Deletes a certificate; [force] also deletes it while in use. `DELETE /certs/{id}` */
     public suspend fun delete(id: Long, force: Boolean = false) {

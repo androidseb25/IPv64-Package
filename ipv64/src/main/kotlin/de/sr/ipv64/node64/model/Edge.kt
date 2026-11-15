@@ -71,6 +71,8 @@ public data class EdgeConfig(
     @SerialName("default_html") val defaultHtml: String? = null,
     /** Addresses/networks of upstream proxies allowed to send a PROXY header (v1/v2) on ports 80/443, space or comma separated, empty = off. */
     @SerialName("proxy_protocol") val proxyProtocol: String? = null,
+    /** Also accept the PROXY header from the current addresses of the nodes of the own cluster. */
+    @SerialName("proxy_protocol_peers") val proxyProtocolPeers: Boolean? = null,
 )
 
 /** Body of `PUT /edge`. Missing fields stay unchanged. */
@@ -94,6 +96,8 @@ public data class EdgeConfigRequest(
     @SerialName("default_html") val defaultHtml: String? = null,
     /** Addresses/networks of upstream proxies allowed to send a PROXY header (v1/v2) on ports 80/443, space or comma separated, empty = off. */
     @SerialName("proxy_protocol") val proxyProtocol: String? = null,
+    /** Also accept the PROXY header from the current addresses of the nodes of the own cluster. */
+    @SerialName("proxy_protocol_peers") val proxyProtocolPeers: Boolean? = null,
 )
 
 /** A listener of the shared entry. */
@@ -135,6 +139,8 @@ public data class EdgeStatus(
     val listeners: List<EdgeListener> = emptyList(),
     /** Registered names. */
     val names: List<EdgeName> = emptyList(),
+    /** Addresses of the cluster nodes a PROXY header is accepted from (only with `config.proxy_protocol_peers`). */
+    @SerialName("proxy_peers") val proxyPeers: List<String> = emptyList(),
 )
 
 /** Response of `GET /ports`. */

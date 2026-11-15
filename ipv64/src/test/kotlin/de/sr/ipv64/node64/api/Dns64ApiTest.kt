@@ -550,4 +550,28 @@ class Dns64ApiTest : Node64ApiTestBaseB() {
         assertEquals(42, p.total)
         assertEquals(5L, p.items[0].count)
     }
+
+    @Test
+    fun `lookup sends domain and decodes`() = test<Unit> {
+        enqueueJson("""{"domain":"ads.example.com","blocked":true,"reason":"list","lists":[{"name":"L","global":true}],"excepted":false,"released":["r"],"services":["s"],"categories":["c"],"groups":[{"group":"g","kind":"block","entry":"e"}]}""")
+        val l = dns.lookup("ads.example.com")
+        expectRequest("GET", "/api/dns64/lookup?domain=ads.example.com")
+        assertEquals(true, l.blocked)
+        assertEquals("L", l.lists[0].name)
+        assertEquals(DNS64LookupGroupKind.BLOCK, l.groups[0].kind)
+        assertEquals(listOf("r"), l.released)
+    }
+
+    @Test
+    fun `rules get and replace`() = test<Unit> {
+        enqueueJson("""{"rules":"||a.com^"}""")
+        assertEquals("||a.com^", dns.rules().rules)
+        expectRequest("GET", "/api/dns64/rules")
+        enqueueJson("""{"deny":1,"allow":1,"added":2,"removed":0,"duplicates":0,"invalid":["x"],"client":0,"exact":0}""")
+        val r = dns.replaceRules(listOf("||a.com^", "@@||b.com^"))
+        val req = expectRequest("PUT", "/api/dns64/rules")
+        assertEquals(js("""{"rules":["||a.com^","@@||b.com^"]}"""), req.jsonBody())
+        assertEquals(2L, r.added)
+        assertEquals(listOf("x"), r.invalid)
+    }
 }

@@ -126,6 +126,16 @@ class LinkApiTest : Node64ApiTestBaseA() {
     }
 
     @Test
+    fun `conflicts accepts null local and server and decodes error`() = test {
+        enqueueJson("""[{"id":9,"local":null,"server":null,"error":"read only"}]""")
+        val c = node().link.conflicts().single()
+        takeRequest()
+        assertNull(c.local)
+        assertNull(c.server)
+        assertEquals("read only", c.error)
+    }
+
+    @Test
     fun `resolveConflict posts keep choice`() = test {
         enqueueNoContent()
 

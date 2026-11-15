@@ -7,6 +7,7 @@ import de.sr.ipv64.internal.body
 import de.sr.ipv64.internal.json
 import de.sr.ipv64.internal.query
 import de.sr.ipv64.node64.model.CDNBlocklists
+import de.sr.ipv64.node64.model.CDNGeoLookup
 import de.sr.ipv64.node64.model.CDNHoneypotSettingsRequest
 import de.sr.ipv64.node64.model.CDNHoneypotView
 import de.sr.ipv64.node64.model.CDNLimitsRequest
@@ -115,6 +116,10 @@ public class Proxy64Api internal constructor(private val transport: HttpTranspor
     /** Reloads the blocklists now. `POST /cdn64/blocklists/refresh` */
     public suspend fun refreshBlocklists(): CDNBlocklists =
         transport.json(Method.POST, ApiPath("cdn64", "blocklists", "refresh"))
+
+    /** Country for an address in the country restriction; [lang] `de` or `en`. `GET /cdn64/geo/lookup` */
+    public suspend fun geoLookup(ip: String, lang: String? = null): CDNGeoLookup =
+        transport.json(Method.GET, ApiPath("cdn64", "geo", "lookup"), query("ip" to ip, "lang" to lang))
 
     // ---- Honeypot64 ----
 

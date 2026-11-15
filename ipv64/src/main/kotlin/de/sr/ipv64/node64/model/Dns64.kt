@@ -584,3 +584,73 @@ public data class DNS64TopListPage(
     val items: List<DNS64TopItem> = emptyList(),
     val total: Int? = null,
 )
+
+/** Blocklist of a [DNS64Lookup]. */
+@Serializable
+public data class DNS64LookupList(
+    val name: String? = null,
+    /** Applies to devices without a group. */
+    val global: Boolean? = null,
+)
+
+/** Kind of a [DNS64LookupGroup] entry. */
+@Serializable
+public enum class DNS64LookupGroupKind(override val value: String) : ApiValue {
+    @SerialName("block") BLOCK("block"),
+    @SerialName("allow") ALLOW("allow"),
+}
+
+/** Group rule that matches a [DNS64Lookup]. */
+@Serializable
+public data class DNS64LookupGroup(
+    val group: String? = null,
+    val kind: DNS64LookupGroupKind? = null,
+    val entry: String? = null,
+)
+
+/** Response of `GET /dns64/lookup`: where a domain is listed. [blocked]/[reason] apply to devices without a group. */
+@Serializable
+public data class DNS64Lookup(
+    val domain: String? = null,
+    val blocked: Boolean? = null,
+    /** As in the query log: blocklist name, `own:<entry>`, `released:<list>`. */
+    val reason: String? = null,
+    val lists: List<DNS64LookupList> = emptyList(),
+    /** Exception (`@@`) in a blocklist. */
+    val excepted: Boolean? = null,
+    val own: String? = null,
+    val allowed: String? = null,
+    val released: List<String> = emptyList(),
+    val services: List<String> = emptyList(),
+    val categories: List<String> = emptyList(),
+    val groups: List<DNS64LookupGroup> = emptyList(),
+)
+
+/** Response of `GET /dns64/rules`. */
+@Serializable
+public data class DNS64Rules(
+    /** One rule per line (`||example.com^`, `@@||example.com^`). */
+    val rules: String? = null,
+)
+
+/** Body of `PUT /dns64/rules`. */
+@Serializable
+public data class DNS64RulesRequest(val rules: List<String>)
+
+/** Result of `PUT /dns64/rules` (also the body of the 422 answer). */
+@Serializable
+public data class DNS64RulesResult(
+    /** Blocks afterwards. */
+    val deny: Long? = null,
+    /** Allows afterwards. */
+    val allow: Long? = null,
+    val added: Long? = null,
+    val removed: Long? = null,
+    val duplicates: Long? = null,
+    /** Invalid lines (at most 20). */
+    val invalid: List<String> = emptyList(),
+    /** Of these with `$client=` (per-device rules: device groups). */
+    val client: Long? = null,
+    /** Of these for exactly one name (`|example.com^`). */
+    val exact: Long? = null,
+)
